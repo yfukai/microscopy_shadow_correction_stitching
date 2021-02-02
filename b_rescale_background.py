@@ -29,7 +29,7 @@ warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
 script_path = path.dirname(path.abspath(__file__))
 cziutils_path = path.abspath(path.join(script_path, "../../"))
 sys.path.append(cziutils_path)
-import cziutils
+import cziutils # pylint: disable=import-error
 
 camera_dark_directory = path.abspath(
     path.join(script_path, "../../../camera-dark/analyzed/"))

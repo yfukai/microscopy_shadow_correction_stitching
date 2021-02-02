@@ -21,7 +21,7 @@ from skimage.io import imsave
 script_path = path.dirname(path.abspath(__file__))
 cziutils_path = path.abspath(path.join(script_path, "../../"))
 sys.path.append(cziutils_path)
-import cziutils
+import cziutils # pylint: disable=import-error
 
 @cziutils.with_javabridge
 def calculate_background(filename,
