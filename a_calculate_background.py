@@ -2,7 +2,6 @@
 """
 calculate_background.py
 determine the dish center position to use backgrounds, and calculate the background by median
-prerequisites: lunch ipcluster with the "ipcluster" profile
 
 """
 import importlib
@@ -82,6 +81,12 @@ def check_validity(x_value, y_value, valid_area, x_edges, y_edges):
             or y_bin > valid_area.shape[1]-1:
         return False
     return valid_area[x_bin, y_bin]
+
+def with_ipcluster(func):
+    def wrapped(*args,**kwargs):
+        try:
+            proc=
+
 
 @cziutils.with_javabridge
 def calculate_background(filename,
