@@ -97,14 +97,14 @@ def calculate_background(filename,
     ############## save images into HDF5 ################
     
     with h5py.File(img_h5f_name,"w") as h5f:
-        h5f.create_dataset("rescaled_image",shape=(sizeS,sizeT,sizeZ,sizeC,sizeY,sizeX),dtype=np.float32)
-        h5f["rescaled_image"].attrs["dimension_order"]="stzcyx"
+        h5f.create_dataset("rescaled_image",shape=(sizeS,sizeT,sizeC,sizeZ,sizeY,sizeX),dtype=np.float32)
+        h5f["rescaled_image"].attrs["dimension_order"]="stczyx"
         h5f["rescaled_image"].attrs["channels"]=np.array([c["@Fluor"] for c in channels],dtype="S")
         for _, row in tqdm(list(planes_df.iterrows())):
             c,t,z,s=int(row["C_index"]),int(row["T_index"]),int(row["Z_index"]),int(row["image"])
             img=reader.read(c=c,t=t,z=z,series=s,rescale=False)
             img=(img-camera_dark)/backgroundss[c]
-            h5f["rescaled_image"][s,t,z,c,:,:]=img
+            h5f["rescaled_image"][s,t,c,z,:,:]=img
         for k, v in params_dict.items():
             print(k,v)
             try:
@@ -121,7 +121,7 @@ def calculate_background(filename,
             c_indices=[j for j,c in enumerate(channels) if c_name in c["@Fluor"]]
 #            print(c_indices)
             assert len(c_indices)==1; c_index=c_indices[0]#; print(c_index)
-            first_img=np.array(h5f["rescaled_image"][0,0,0,c_index,:,:])
+            first_img=np.array(h5f["rescaled_image"][0,0,c_index,0,:,:])
             img_min=np.min(first_img)
             img_max=np.max(first_img)
             selected_planes_df=planes_df[planes_df["C_index"]==c_index]
@@ -132,7 +132,7 @@ def calculate_background(filename,
                     fc.write("dim = 2\n")
                     for j, row in grp.iterrows():
                         c,t,z,s=int(row["C_index"]),int(row["T_index"]),int(row["Z_index"]),int(row["image"]) 
-                        img=np.array(h5f["rescaled_image"][s,t,z,c,:,:])
+                        img=np.array(h5f["rescaled_image"][s,t,c,z,:,:])
                         img=((img-img_min)/(img_max-img_min)*256).astype(np.uint8)
                         imgname=f'rescaled_t{t+1:03d}'\
                                 f'_row{int(row["Y_index"])+1:03d}'\
