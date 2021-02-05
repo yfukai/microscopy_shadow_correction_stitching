@@ -61,10 +61,12 @@ def get_camera_acquisition_ROI(meta):
 
 def rescale_background(filename,
                          analyzed_dir=None,
-                         median_sigma=10):
+                         median_sigma=10,
+                         camera_dark_average_method="mean"):
     print(analyzed_dir)
     if analyzed_dir is None:
         analyzed_dir = filename[:-4] + "_analyzed"
+    assert camera_dark_average_method in ["mean","median"]
     bg_h5f_name = path.join(analyzed_dir, "8_averaged_background.hdf5")
     metadata_xml_name = path.join(analyzed_dir, "metadata.xml")
     print(bg_h5f_name)
@@ -93,7 +95,7 @@ def rescale_background(filename,
     ############## Get corresponding camera dark image ################
     camera_h5f = get_camera_background(meta)
     candidate_keys = [k for k in camera_h5f.keys()
-                      if "median_binning"+binning_str in k]
+                      if "mean_binning"+binning_str in k]
     exposure_time = [float(re.search(r"exposure([\d\.]+)ms", k).groups(0)[0])
                      for k in candidate_keys]
     key = candidate_keys[np.argmax(exposure_time)]
