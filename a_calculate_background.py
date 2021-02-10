@@ -12,6 +12,7 @@ import yaml
 import os
 from os import path
 from time import sleep
+from subprocess import Popen
 
 import bioformats
 import fire
@@ -85,10 +86,20 @@ def check_validity(x_value, y_value, valid_area, x_edges, y_edges):
 def with_ipcluster(func):
     def wrapped(*args,**kwargs):
         try:
-            proc=
+            print("starting ipcluster...")
+            proc=Popen(["ipcluster","start","--profile","ipcluster","--n","10"])
+            sleep(10)
+            print("started.")
+            res=func(*args,**kwargs)
+        finally:
+            print("terminating ipcluster...")
+            proc.terminate()
+        return res
+    return wrapped
 
 
 @cziutils.with_javabridge
+@with_ipcluster
 def calculate_background(filename,
                          output_dir=None,
                          th_factor=3.,
@@ -143,7 +154,7 @@ def calculate_background(filename,
     dview.execute("_reader = cziutils.get_tiled_reader(filename)")
     dview["read_image"] = read_image
     dview["summarize_image"] = summarize_image
-    sleep(2)
+    sleep(5)
     dview.execute("_reader = cziutils.get_tiled_reader(filename)")
     sleep(1)
 
