@@ -46,26 +46,13 @@ def get_camera_background(meta):
     return h5py.File(path.join(camera_dark_directory, microscope+".hdf5"), "r")
 
 
-def get_camera_acquisition_ROI(meta):
-    keys = ['HardwareSetting|ParameterCollection|ImageFrame']
-    annotation_dict = cziutils.get_structured_annotation_dict(meta)
-    for k in keys:
-        try:
-            boundary = json.loads(annotation_dict[k])[:4]
-            boundary_slice = (slice(boundary[1], boundary[1]+boundary[3]),
-                              slice(boundary[0], boundary[0]+boundary[2]))
-            return boundary_slice
-        except KeyError:
-            continue
-
-
 def rescale_background(filename,
                          analyzed_dir=None,
                          median_sigma=10,
                          camera_dark_average_method="mean"):
-    print(analyzed_dir)
     if analyzed_dir is None:
         analyzed_dir = filename[:-4] + "_analyzed"
+    print(analyzed_dir)
     assert camera_dark_average_method in ["mean","median"]
     bg_h5f_name = path.join(analyzed_dir, "8_averaged_background.hdf5")
     metadata_xml_name = path.join(analyzed_dir, "metadata.xml")
@@ -79,31 +66,39 @@ def rescale_background(filename,
     ############## Load files ################
     with open(metadata_xml_name, "r") as f:
         meta = "".join(f.readlines())
-    binning = cziutils.get_binning(meta)
-    binning = np.unique(binning)
-    print(filename, binning)
-    assert len(binning) == 1
-    binning_str = f"{binning[0]}x{binning[0]}"
-    boundary = get_camera_acquisition_ROI(meta)
-    print("binning: ", binning_str)
-    print("ROI: ", boundary)
-    params_dict.update({
-        "binning": binning_str,
-        "ROI": boundary,
-    })
+
+    #id_keys=["camera","binning_str","bit_depth","exposure","LUT"]
+    camera_props={
+        "binning" : cziutils.get_binning(meta),
+        "LUT" : cziutils.get_camera_LUT(meta),
+        "bit_depth" : cziutils.get_camera_bits(meta),
+    }
+    boundary = cziutils.get_camera_roi_slice(meta)
+    params_dict.update(camera_props)
+    params_dict.update({"boundary" : boundary})
+    print(params_dict)
 
     ############## Get corresponding camera dark image ################
     camera_h5f = get_camera_background(meta)
-    candidate_keys = [k for k in camera_h5f.keys()
-                      if "mean_binning"+binning_str in k]
-    exposure_time = [float(re.search(r"exposure([\d\.]+)ms", k).groups(0)[0])
+    candidate_keys=[]
+    for k in camera_h5f.keys():
+        if all([(np.array_equal(camera_h5f[k].attrs[cp_k], cp_v))
+                for cp_k,cp_v in camera_props.items()]):
+            candidate_keys.append(k)
+    assert len(candidate_keys) > 0
+
+    exposure_time = [float(camera_h5f[k].attrs["exposure"])
                      for k in candidate_keys]
     key = candidate_keys[np.argmax(exposure_time)]
     params_dict.update({
         "camera_dark_hdf5_name": key,
         "camera_dark_key": key,
     })
-    camera_dark_img = np.array(camera_h5f[key])[boundary]
+    camera_dark_img = np.array(camera_h5f[key])
+    print(camera_dark_img.shape)
+    print(boundary)
+    print(params_dict)
+    camera_dark_img=camera_dark_img[boundary[1],boundary[0]]
 
     ############## rescale background and save ##############
 
@@ -116,6 +111,7 @@ def rescale_background(filename,
         for k in h5f.keys():
             fig, axes = plt.subplots(1, 4, figsize=(15, 3))
             bg_img = np.array(h5f[k])
+            assert np.array_equal(bg_img.shape,camera_dark_img.shape)
             normalized = bg_img-camera_dark_img
             normalized_smoothed = filters.median(
                 normalized, disk(median_sigma))

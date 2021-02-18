@@ -79,8 +79,8 @@ def calculate_background(filename,
         camera_dark=np.array(bg_h5f["camera_dark_img"])
 
         backgroundss=[]
-        for j,c in enumerate(channels):
-            channel_key=str(j)+"_"+c["@Fluor"]
+        for ic,c in enumerate(channels):
+            channel_key=str(ic)+"_"+c["@Fluor"]
             background_key=f"smoothed_background_{channel_key}_median_img"
             background=np.array(bg_h5f[background_key])
 

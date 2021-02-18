@@ -87,7 +87,7 @@ def with_ipcluster(func):
     def wrapped(*args,**kwargs):
         try:
             print("starting ipcluster...")
-            proc=Popen(["ipcluster","start","--profile","ipcluster","--n","10"])
+            proc=Popen(["ipcluster","start","--profile","default","--n","5"])
             sleep(10)
             print("started.")
             res=func(*args,**kwargs)
@@ -110,7 +110,7 @@ def calculate_background(filename,
     if output_dir is None:
         output_dir = filename[:-4] + "_analyzed"
     params_dict = locals()
-    cli = ipp.Client(profile="ipcluster")
+    cli = ipp.Client(profile="default")
     dview = cli[:]
     dview.clear()
     bview = cli.load_balanced_view()
