@@ -10,8 +10,6 @@ prerequisites:
 import sys
 import warnings
 from os import path
-import json
-import re
 
 import fire
 import numpy as np
@@ -48,7 +46,8 @@ def get_camera_background(meta):
 
 def rescale_background(filename,
                          analyzed_dir=None,
-                         median_sigma=10,
+                         smoothing="gaussian",
+                         sigma=10,
                          camera_dark_average_method="mean"):
     if analyzed_dir is None:
         analyzed_dir = filename[:-4] + "_analyzed"
@@ -85,7 +84,7 @@ def rescale_background(filename,
         if all([(np.array_equal(camera_h5f[k].attrs[cp_k], cp_v))
                 for cp_k,cp_v in camera_props.items()]):
             candidate_keys.append(k)
-    assert len(candidate_keys) > 0
+    assert len(candidate_keys) > 0, "corresponding dark image must exist"
 
     exposure_time = [float(camera_h5f[k].attrs["exposure"])
                      for k in candidate_keys]
@@ -113,8 +112,11 @@ def rescale_background(filename,
             bg_img = np.array(h5f[k])
             assert np.array_equal(bg_img.shape,camera_dark_img.shape)
             normalized = bg_img-camera_dark_img
-            normalized_smoothed = filters.median(
-                normalized, disk(median_sigma))
+            smoothing_ops={
+                "gaussian":lambda im : filters.gaussian(im,sigma=sigma),
+                "median":lambda im : filters.median(im,disk(sigma)),
+            }
+            normalized_smoothed = smoothing_ops[smoothing](normalized)
             ims = []
             imgs = [camera_dark_img, bg_img,
                     normalized, normalized_smoothed]
