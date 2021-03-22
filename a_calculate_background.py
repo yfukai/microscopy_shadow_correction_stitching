@@ -87,7 +87,7 @@ def with_ipcluster(func):
     def wrapped(*args,**kwargs):
         try:
             print("starting ipcluster...")
-            proc=Popen(["ipcluster","start","--profile","default","--n","5"])
+            proc=Popen(["ipcluster","start","--profile","default","--n","20"])
             sleep(10)
             print("started.")
             res=func(*args,**kwargs)
@@ -96,6 +96,15 @@ def with_ipcluster(func):
             proc.terminate()
         return res
     return wrapped
+
+def check_ipcluster_variable_defined(dview,name):
+    while True:
+        try:
+            dview.execute(f"print({name})")
+            return
+        except ipp.error.CompositeError:
+            sleep(1)
+            pass
 
 
 @cziutils.with_javabridge
@@ -115,8 +124,9 @@ def calculate_background(filename,
     dview.clear()
     bview = cli.load_balanced_view()
     dview["cziutils_path"] = cziutils_path
-    sleep(10)
+    sleep(5)
     dview.block = True
+    check_ipcluster_variable_defined(dview,"cziutils_path")
     dview.execute("""
     import javabridge
     import bioformats as bf
@@ -155,8 +165,13 @@ def calculate_background(filename,
     dview["read_image"] = read_image
     dview["summarize_image"] = summarize_image
     sleep(5)
-    dview.execute("_reader = cziutils.get_tiled_reader(filename)")
-    sleep(1)
+    print("waiting for ipcluster sync...")
+    check_ipcluster_variable_defined(dview,"read_image")
+    check_ipcluster_variable_defined(dview,"summarize_image")
+    sleep(5)
+#    dview.execute("_reader = cziutils.get_tiled_reader(filename)")
+#    sleep(1)
+#    check_ipcluster_variable_defined(dview,"_reader")
 
     res = bview.map_async(
         lambda row: summarize_image(row, _reader, thumbnail_size, quantile), # pylint: disable=undefined-variable
@@ -197,6 +212,10 @@ def calculate_background(filename,
 
     ph_positions_df = positions_df[positions_df["C_index"] ==
                                    ph_channel_index].copy()
+
+    thumbail_output_name="2_thresholded_thumbnail"
+    thumbail_output_path=path.join(output_dir,thumbail_output_name)
+    os.makedirs(thumbail_output_path,exist_ok=True)
     for iS, grp in ph_positions_df.groupby("S_index"):
         fig, axes = plt.subplots(1, 2, figsize=(10, 5))
         img_mean = grp["thumbnail"].iloc[0]
@@ -207,7 +226,8 @@ def calculate_background(filename,
         fig.suptitle("series "+str(iS)
                      +" below th count: "+str(np.sum(img_mean<m-th_factor*s))\
                      +" above th count: "+str(np.sum(img_mean>m+th_factor*s)))
-        savefig(fig, f"2_thresholded_thumbnails_{iS}.pdf")
+        savefig(fig, path.join(thumbail_output_name,
+                               f"2_thresholded_thumbnails_{iS}.pdf"))
 
     sigma = 20 / float(pixel_sizes[0])
     params_dict.update({"sigma": sigma})
@@ -327,8 +347,10 @@ def calculate_background(filename,
             ignore_index=True)
     background_df["C_index"] = background_df["C_index"].astype(int)
     background_df["T_index"] = background_df["T_index"].astype(int)
-    background_df.to_hdf(path.join(output_dir, "background_props.hdf5"),
-                          "background")
+    print(background_df.dtypes)
+#XXX removed due to HDF5 pandas problem https://stackoverflow.com/questions/57078803/overflowerror-while-saving-large-pandas-df-to-hdf
+#    background_df.to_hdf(path.join(output_dir, "background_props.hdf5"),
+#                          "background")
 
     ############## check correlation of backgrounds ##############
     for iC, grp in background_df.groupby("C_index"):
