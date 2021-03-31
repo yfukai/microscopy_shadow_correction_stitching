@@ -35,7 +35,7 @@ warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
 
 script_path = path.dirname(path.abspath(__file__))
-cziutils_path = path.abspath(path.join(script_path, "../../"))
+cziutils_path = path.abspath(path.join(script_path, "../../../"))
 sys.path.append(cziutils_path)
 import cziutils # pylint: disable=import-error
 importlib.reload(cziutils)
@@ -85,9 +85,13 @@ def check_validity(x_value, y_value, valid_area, x_edges, y_edges):
 
 def with_ipcluster(func):
     def wrapped(*args,**kwargs):
+        if "ipcluster_nproc" in kwargs.keys():
+            nproc=kwargs["ipcluster_nproc"]
+        else:
+            nproc=1
         try:
             print("starting ipcluster...")
-            proc=Popen(["ipcluster","start","--profile","default","--n","20"])
+            proc=Popen(["ipcluster","start","--profile","default","--n",str(nproc)])
             sleep(10)
             print("started.")
             res=func(*args,**kwargs)
@@ -110,14 +114,13 @@ def check_ipcluster_variable_defined(dview,name):
 @cziutils.with_javabridge
 @with_ipcluster
 def calculate_background(filename,
-                         output_dir=None,
+                         output_dir,
                          th_factor=3.,
-                         valid_ratio_threshold=0.75,
+                         valid_ratio_threshold=0.25,
                          intensity_bin_size=25,
                          thumbnail_size=20,
-                         quantile=0.001):
-    if output_dir is None:
-        output_dir = filename[:-4] + "_analyzed"
+                         quantile=0.001,
+                         ipcluster_nproc=10):
     params_dict = locals()
     cli = ipp.Client(profile="default")
     dview = cli[:]
@@ -315,8 +318,7 @@ def calculate_background(filename,
     fig.tight_layout()
     savefig(fig, f"5_valid_positions.pdf")
 
-    series_df[
-        "is_valid"] = series_df["is_valid_ratio"] > valid_ratio_threshold
+    series_df["is_valid"] = series_df["is_valid_ratio"] > valid_ratio_threshold
     series_df.to_hdf(path.join(output_dir, "image_props.hdf5"),
                      "series")
 
