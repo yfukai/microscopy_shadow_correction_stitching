@@ -11,8 +11,6 @@ from datetime import datetime, timedelta
 import yaml
 import os
 from os import path
-from time import sleep
-from subprocess import Popen
 
 import bioformats
 import fire
@@ -31,22 +29,11 @@ from scipy import ndimage
 from skimage import filters, io, measure, morphology, transform
 from tqdm import tqdm
 
+from .utils import *
+
 warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
 
-script_path = path.dirname(path.abspath(__file__))
-cziutils_path = path.abspath(path.join(script_path, "../../../"))
-sys.path.append(cziutils_path)
-import cziutils # pylint: disable=import-error
-importlib.reload(cziutils)
-
-
-def read_image(row, reader):
-    return reader.read(c=row["C_index"],
-                       t=row["T_index"],
-                       series=row["S_index"],
-                       z=row["Z_index"],
-                       rescale=False)
 
 
 def summarize_image(row, reader, thumbnail_size, quantile):
@@ -83,40 +70,13 @@ def check_validity(x_value, y_value, valid_area, x_edges, y_edges):
         return False
     return valid_area[x_bin, y_bin]
 
-def with_ipcluster(func):
-    def wrapped(*args,**kwargs):
-        if "ipcluster_nproc" in kwargs.keys():
-            nproc=kwargs["ipcluster_nproc"]
-        else:
-            nproc=1
-        try:
-            print("starting ipcluster...")
-            proc=Popen(["ipcluster","start","--profile","default","--n",str(nproc)])
-            sleep(10)
-            print("started.")
-            res=func(*args,**kwargs)
-        finally:
-            print("terminating ipcluster...")
-            proc.terminate()
-        return res
-    return wrapped
-
-def check_ipcluster_variable_defined(dview,name):
-    while True:
-        try:
-            dview.execute(f"print({name})")
-            return
-        except ipp.error.CompositeError:
-            sleep(1)
-            pass
-
 
 @cziutils.with_javabridge
 @with_ipcluster
 def calculate_background(filename,
                          output_dir,
                          th_factor=3.,
-                         valid_ratio_threshold=0.25,
+                         valid_ratio_threshold=0.05,
                          intensity_bin_size=25,
                          thumbnail_size=20,
                          quantile=0.001,
@@ -141,9 +101,11 @@ def calculate_background(filename,
     """)
 
     os.makedirs(output_dir, exist_ok=True)
+    log_dir=path.join(output_dir,"calcluate_background_log")
+    os.makedirs(log_dir)
 
     def savefig(fig, name):
-        fig.savefig(path.join(output_dir, name), bbox_inches="tight")
+        fig.savefig(path.join(log_dir, name), bbox_inches="tight")
 
     ############## Load files ################
     meta = cziutils.get_tiled_omexml_metadata(filename)
@@ -172,9 +134,6 @@ def calculate_background(filename,
     check_ipcluster_variable_defined(dview,"read_image")
     check_ipcluster_variable_defined(dview,"summarize_image")
     sleep(5)
-#    dview.execute("_reader = cziutils.get_tiled_reader(filename)")
-#    sleep(1)
-#    check_ipcluster_variable_defined(dview,"_reader")
 
     res = bview.map_async(
         lambda row: summarize_image(row, _reader, thumbnail_size, quantile), # pylint: disable=undefined-variable
@@ -195,7 +154,8 @@ def calculate_background(filename,
                                   grp["stdev"],
                                   bins=intensity_bin_size)
         mean_mode[iC],stdev_mode[iC]=\
-            [float((edge[x[0]]+edge[x[0]+1])/2.) for edge,x in zip(edges,np.where(h==np.max(h)))]
+            [float((edge[x[0]]+edge[x[0]+1])/2.) 
+             for edge,x in zip(edges,np.where(h==np.max(h)))]
         ax.plot(mean_mode[iC], stdev_mode[iC], "ro")
         ax.set_xlabel("mean intensity")
         ax.set_ylabel("stdev intensity")
