@@ -23,18 +23,6 @@ def with_ipcluster(func):
         else:
             nproc=1
         command=["ipcluster","start","--profile","default","--n",str(nproc)]
-#        try:
-#            print("starting ipcluster...")
-#            proc=Popen(command)
-#            sleep(10)
-#            print("started.")
-#            res=func(*args,**kwargs)
-#        finally:
-#            print("terminating ipcluster...")
-##            os.kill(proc.pid, signal.SIGTERM)
-#            proc.terminate()
-#            proc.communicate()
-#        return res
         with Popen(command) as proc:
             print("starting ipcluster...")
             sleep(10)
@@ -43,7 +31,6 @@ def with_ipcluster(func):
                 res=func(*args,**kwargs)
             finally:
                 os.kill(proc.pid, signal.SIGINT)
-#                proc.terminate()
         return res
     return wrapped
 
