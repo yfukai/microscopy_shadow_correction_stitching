@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
 calculate_background.py
-determine the dish center position to use backgrounds, and calculate the background by median
+determine the dish center position to use backgrounds, 
+and calculate the background by median
 
 """
 import importlib
 import sys
 import warnings
+import itertools
 from datetime import datetime, timedelta
 import yaml
 import os
@@ -27,13 +29,15 @@ from javabridge import jutil
 from matplotlib import pyplot as plt
 from scipy import ndimage
 from skimage import filters, io, measure, morphology, transform
+io.use_plugin("tifffile")
 from tqdm import tqdm
 
-from .utils import *
+import pycziutils
+
+from utils import *
 
 warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
-
 
 
 def summarize_image(row, reader, thumbnail_size, quantile):
@@ -58,82 +62,64 @@ def threshold_image(row, reader, sigma, th_low, th_high):
     return np.sum(img < th_low), np.sum(img > th_high)
 
 
-def check_validity(x_value, y_value, valid_area, x_edges, y_edges):
-    assert np.all(x_edges[1:] > x_edges[:-1])
-    assert np.all(y_edges[1:] > y_edges[:-1])
-    if x_value >= x_edges[-1] or y_value >= y_edges[-1]:
-        return False
-    x_bin = np.min(np.where(x_value < x_edges)[0])
-    y_bin = np.min(np.where(y_value < y_edges)[0])
-    if x_bin > valid_area.shape[0]-1 \
-            or y_bin > valid_area.shape[1]-1:
-        return False
-    return valid_area[x_bin, y_bin]
-
-
-@cziutils.with_javabridge
+@pycziutils.with_javabridge
 @with_ipcluster
 def calculate_background(filename,
                          output_dir,
                          th_factor=3.,
-                         valid_ratio_threshold=0.05,
+                         above_threshold_pixel_ratio_max=0.05,
+                         below_threshold_pixel_ratio_max=0.05,
+                         valid_ratio_threshold=0.4,
                          intensity_bin_size=25,
                          thumbnail_size=20,
                          quantile=0.001,
-                         ipcluster_nproc=10):
+                         ipcluster_nproc=1):
     params_dict = locals()
     cli = ipp.Client(profile="default")
     dview = cli[:]
     dview.clear()
     bview = cli.load_balanced_view()
-    dview["cziutils_path"] = cziutils_path
-    sleep(5)
-    dview.block = True
-    check_ipcluster_variable_defined(dview,"cziutils_path")
     dview.execute("""
     import javabridge
     import bioformats as bf
-    import sys
-    print(cziutils_path)
-    sys.path.append(cziutils_path)
-    import cziutils
+    import pycziutils
     javabridge.start_vm(class_path=bf.JARS)
     """)
 
     os.makedirs(output_dir, exist_ok=True)
     log_dir=path.join(output_dir,"calcluate_background_log")
-    os.makedirs(log_dir)
+    os.makedirs(log_dir,exist_ok=True)
 
     def savefig(fig, name):
         fig.savefig(path.join(log_dir, name), bbox_inches="tight")
 
     ############## Load files ################
-    meta = cziutils.get_tiled_omexml_metadata(filename)
-    reader = cziutils.get_tiled_reader(filename)
-    cziutils.summarize_image_size(reader)
-    pixel_sizes = cziutils.get_pixel_size(meta)
+    meta = pycziutils.get_tiled_omexml_metadata(filename)
+    with open(path.join(output_dir,"metadata.xml"),"w") as f:
+        f.write(meta)
+
+    reader = pycziutils.get_tiled_reader(filename)
+    seriesCount, sizeT, sizeC, sizeX, sizeY, sizeZ = pycziutils.summarize_image_size(reader)
+
+    pixel_sizes = pycziutils.parse_pixel_size(meta)
     assert pixel_sizes[1] == 'µm'
-    channels = cziutils.get_channels(meta)
+    channels = pycziutils.parse_channels(meta)
     channel_names = [c["@Fluor"] for c in channels]
     ph_channel_index = [
         j for j, c in enumerate(channels) if "Phase" in c["@Fluor"]
     ][0]
-    positions_df = cziutils.get_planes(meta)
+    positions_df = pycziutils.parse_planes(meta)
     null_indices=positions_df.isnull().any(axis=1)
-    params_dict["null_indices"]=positions_df[null_indices].index
+    params_dict["null_indices"]=list(positions_df[null_indices].index)
     positions_df=positions_df.loc[~null_indices,:]
     positions_df["S_index"] = positions_df["image"]
 
     ############## Summarize image intensities ################
-    dview["filename"] = path.abspath(filename)
-    dview.execute("_reader = cziutils.get_tiled_reader(filename)")
-    dview["read_image"] = read_image
-    dview["summarize_image"] = summarize_image
-    sleep(5)
-    print("waiting for ipcluster sync...")
-    check_ipcluster_variable_defined(dview,"read_image")
-    check_ipcluster_variable_defined(dview,"summarize_image")
-    sleep(5)
+    send_variable(dview,"filename",path.abspath(filename))
+    send_variable(dview,"read_image",read_image)
+    send_variable(dview,"summarize_image",summarize_image)
+    dview.execute("_reader = pycziutils.get_tiled_reader(filename)")
+    check_ipcluster_variable_defined(dview,"_reader",timeout=120)
 
     res = bview.map_async(
         lambda row: summarize_image(row, _reader, thumbnail_size, quantile), # pylint: disable=undefined-variable
@@ -177,7 +163,7 @@ def calculate_background(filename,
                                    ph_channel_index].copy()
 
     thumbail_output_name="2_thresholded_thumbnail"
-    thumbail_output_path=path.join(output_dir,thumbail_output_name)
+    thumbail_output_path=path.join(log_dir,thumbail_output_name)
     os.makedirs(thumbail_output_path,exist_ok=True)
     for iS, grp in ph_positions_df.groupby("S_index"):
         fig, axes = plt.subplots(1, 2, figsize=(10, 5))
@@ -191,61 +177,37 @@ def calculate_background(filename,
                      +" above th count: "+str(np.sum(img_mean>m+th_factor*s)))
         savefig(fig, path.join(thumbail_output_name,
                                f"2_thresholded_thumbnails_{iS}.pdf"))
+        plt.close("all")
 
     sigma = 20 / float(pixel_sizes[0])
     params_dict.update({"sigma": sigma})
-    dview["threshold_image"] = threshold_image
-    sleep(2)
+    send_variable(dview,"threshold_image",threshold_image)
     res = bview.map_async(
         lambda row: threshold_image(row, _reader, sigma, th_low, th_high), # pylint: disable=undefined-variable
         [row for _, row in list(ph_positions_df.iterrows())]) 
     res.wait_interactive()
+    print("ok")
     ph_positions_df["below_th_count"] = [r[0] for r in res.get()]
     ph_positions_df["above_th_count"] = [r[1] for r in res.get()]
-    ph_positions_df.to_hdf(path.join(output_dir, "image_props.hdf5"),
-                           "ph_positions")
-
-    ############## Calculate typical thresholded intensities for a image ##############
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-    h, x_edges, y_edges, _ = axes[0].hist2d(
-        ph_positions_df["below_th_count"],
-        ph_positions_df["above_th_count"],
-        bins=100)
-    th = filters.threshold_otsu(h)
-    thresholded = h > th
-    clusters = morphology.label(thresholded)
-    res = measure.regionprops(
-        clusters,
-        h,
-    )
-    mass = [r.mean_intensity * r.area for r in res]
-    max_label = res[np.argmax(mass)].label
-    valid_area = ndimage.binary_dilation(clusters == max_label,
-                                         iterations=3)
-    axes[1].imshow(valid_area.T, origin="lower")
-    for ax in axes:
-        ax.set_xlabel("below threshold counts")
-        ax.set_ylabel("above threshold counts")
-    axes[0].set_title("raw histogram")
-    axes[1].set_title("thresholded")
-    fig.tight_layout()
-    savefig(fig, f"3_below_above_threshold_counts.pdf")
+    ph_positions_df["below_th_ratio"] = ph_positions_df["below_th_count"] / sizeX / sizeY
+    ph_positions_df["above_th_ratio"] = ph_positions_df["above_th_count"] / sizeX / sizeY
+    print("ok")
+    ph_positions_df.drop("thumbnail",axis=1).to_csv(path.join(log_dir,"ph_positions.csv"))
 
     ############## judge if the position is valid to calculate background ##############
     fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-    ph_positions_df["is_valid"] = ph_positions_df.apply(
-        lambda row: check_validity(row["below_th_count"], row[
-            "above_th_count"], valid_area, x_edges, y_edges),
-        axis=1)
-    ax.scatter(ph_positions_df["below_th_count"],
-               ph_positions_df["above_th_count"],
+    ph_positions_df["is_valid"] = \
+        (ph_positions_df["below_th_ratio"] < below_threshold_pixel_ratio_max) & \
+        (ph_positions_df["above_th_ratio"] < above_threshold_pixel_ratio_max) 
+    ax.scatter(ph_positions_df["below_th_ratio"],
+               ph_positions_df["above_th_ratio"],
                c=ph_positions_df["is_valid"],
                s=1,
                marker="o",
                cmap=plt.get_cmap("viridis"),
                alpha=0.3)
-    ax.set_xlabel("below threshold counts")
-    ax.set_ylabel("above threshold counts")
+    ax.set_xlabel("below threshold ratios")
+    ax.set_ylabel("above threshold ratios")
     fig.tight_layout()
     savefig(fig, f"4_threshold_results.pdf")
 
@@ -262,8 +224,7 @@ def calculate_background(filename,
                     "is_valid_ratio": grp["is_valid"].sum() / len(grp),
                     "X": X,
                     "Y": Y
-                },
-                index=[Si]))
+                }, index=[Si]))
 
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
     im = axes[0].scatter(series_df["X"],
@@ -279,18 +240,22 @@ def calculate_background(filename,
     savefig(fig, f"5_valid_positions.pdf")
 
     series_df["is_valid"] = series_df["is_valid_ratio"] > valid_ratio_threshold
-    series_df.to_hdf(path.join(output_dir, "image_props.hdf5"),
-                     "series")
+    series_df.drop("thumbnail",axis=1).to_csv(path.join("series_df"))
 
     valid_series = series_df[series_df["is_valid"]].index
-    valid_positions_df = positions_df[positions_df["S_index"].isin(
-        valid_series)]
+    valid_positions_df = positions_df[positions_df["S_index"].isin(valid_series)]
     print("valid_positions:", len(valid_positions_df))
 
     ############## calclulate backgrounds ##############
-    background_df = pd.DataFrame()
-    for (iC, iT), grp in \
-            tqdm(valid_positions_df.groupby(["C_index", "T_index"])):
+    #t.c.z.y.x
+    median_images=np.empty((sizeT,sizeC,sizeZ,sizeY,sizeX))
+    mean_images=np.empty((sizeT,sizeC,sizeZ,sizeY,sizeX))
+    assert np.array_equal(valid_positions_df["T_index"].unique(),np.arange(sizeT))
+    assert np.array_equal(valid_positions_df["C_index"].unique(),np.arange(sizeC))
+    assert np.array_equal(valid_positions_df["Z_index"].unique(),np.arange(sizeZ))
+
+    for (iC, iT, iZ), grp in \
+            tqdm(valid_positions_df.groupby(["C_index", "T_index", "Z_index"])):
         imgs = []
         for i, row in grp.iterrows():
             imgs.append(read_image(row, reader))
@@ -299,29 +264,26 @@ def calculate_background(filename,
         hq = np.quantile(imgs, 1.- quantile,axis=0)
         mask=np.logical_or(imgs<lq,imgs>hq)
         imgs_trunc = ma.array(imgs,mask=mask)
-        background_df = background_df.append(
-            {
-                "C_index": iC,
-                "T_index": iT,
-                "median_img": np.median(imgs, axis=0),
-                "mean_img": imgs_trunc.mean(axis=0),
-            },
-            ignore_index=True)
-    background_df["C_index"] = background_df["C_index"].astype(int)
-    background_df["T_index"] = background_df["T_index"].astype(int)
-    print(background_df.dtypes)
-#XXX removed due to HDF5 pandas problem https://stackoverflow.com/questions/57078803/overflowerror-while-saving-large-pandas-df-to-hdf
-#    background_df.to_hdf(path.join(output_dir, "background_props.hdf5"),
-#                          "background")
+        median_images[iT,iC,iZ,...]=np.median(imgs, axis=0)
+        mean_images[iT,iC,iZ,...]=imgs_trunc.mean(axis=0)
+
+
+    print("saving background...")
+    with h5py.File(path.join(output_dir,"background_per_tile.hdf5"),"w") as h5f:
+        h5f.create_dataset("median_images",data=median_images)
+        h5f.create_dataset("mean_images",data=mean_images)
+#        h5f.attrs["channels"]=channels
+        h5f.attrs["dimension_order"]="tczyx"
+    print("saved background")
 
     ############## check correlation of backgrounds ##############
-    for iC, grp in background_df.groupby("C_index"):
+    for iC,iZ in itertools.product(range(sizeC),range(sizeZ)):
         c_name = channel_names[iC]
-        for img_key in ["median_img","mean_img"]:
+        for img_key,img in zip(["median","mean"],[median_images,mean_images]):
             fig, axes = plt.subplots(1, 6, figsize=(18, 3))
             ps = []
-            j = len(grp) // 2
-            ims = [grp[img_key].iloc[i] for i in (0, j, -1)]
+            j = sizeT // 2
+            ims = [img[i,iC,iZ] for i in (0, j, -1)]
             ps.append(axes[0].imshow(ims[0]))
             ps.append(axes[1].imshow(ims[1]))
             ps.append(axes[2].imshow(ims[2]))
@@ -329,42 +291,43 @@ def calculate_background(filename,
             ps.append(axes[4].imshow(ims[1] - ims[2]))
             for p, ax in zip(ps, axes):
                 fig.colorbar(p, ax=ax)
-
             axes[5].plot(ims[0].flatten(), ims[-1].flatten(), ".")
+            axes[0].set_title("at time 0")
+            axes[1].set_title(f"at time {j}")
+            axes[2].set_title(f"at time {iT-1}")
+            axes[3].set_title(f"diff at time {j} and 0")
+            axes[4].set_title(f"diff at time {j} and {iT-1}")
             fig.tight_layout()
-            savefig(fig, f"6_background_correlation_{iC}_{c_name}_{img_key}.png")
+            savefig(fig, f"6_background_correlation_C{iC}_{c_name}_Z{iZ}_{img_key}.png")
+            plt.close("all")
 
     ############## summarize and save backgrounds ##############
-    with h5py.File(path.join(output_dir, "8_averaged_background.hdf5"),
-                   "w") as h5f:
-        for iC, grp in background_df.groupby("C_index"):
-            for img_key in ["median_img","mean_img"]:
-                fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-                c_name = channel_names[iC]
-                averaged_img = np.mean(grp[img_key], axis=0)
-                p = ax.imshow(averaged_img)
-                fig.colorbar(p, ax=ax)
-                savefig(fig, f"7_averaged_background_{iC}_{c_name}_{img_key}.pdf")
+    background_directory=path.join(output_dir,"averaged_background")
+    os.makedirs(background_directory, exist_ok=True)
+    for iC,iZ in itertools.product(range(sizeC),range(sizeZ)):
+        c_name = channel_names[iC]
+        for img_key,img in zip(["median","mean"],[median_images,mean_images]):
+            filename=f"{img_key}_C{iC}_{c_name}_Z{iZ}"
+            averaged_img = np.mean(img[:,iC,iZ], axis=0)
+            
+            fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+            p = ax.imshow(averaged_img)
+            fig.colorbar(p, ax=ax)
+            savefig(fig, f"7_time_averaged_background_{filename}.pdf")
+            plt.close("all")
 
-                arrayname = f"background_{int(iC)}_{c_name}_{img_key}"
-                filename = path.join(output_dir, arrayname)
-                io.imsave(filename + ".tiff",
-                          np.round(averaged_img).astype(int))
+            io.imsave(path.join(background_directory,filename + ".tiff"),
+                      averaged_img,check_contrast=False)
 
-                ds = h5f.create_dataset(arrayname, data=averaged_img)
-                ds.attrs["iC"] = int(iC)
-                ds.attrs["c_name"] = c_name
-        h5f.attrs["filename"] = filename
-        for k, v in params_dict.items():
-            print(k,v)
-            try:
-                h5f.attrs[k] = v
-            except TypeError:
-                h5f.attrs[k] = np.array(v,dtype="S")
-
-    metadata_xml_name = path.join(output_dir, "metadata.xml")
-    with open(metadata_xml_name,"w") as f:
-        f.write(meta)
+    params_path=path.join(background_directory,"params.yaml")
+    with open(params_path,"w") as f:
+        yaml.dump(params_dict,f)
+#        for k, v in params_dict.items():
+#            print(k,v)
+#            try:
+#                h5f.attrs[k] = v
+#            except TypeError:
+#                h5f.attrs[k] = np.array(v,dtype="S")
 
 
 if __name__ == "__main__":
