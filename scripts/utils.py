@@ -4,7 +4,7 @@
 from time import sleep
 import os
 import signal
-from subprocess import Popen
+from subprocess import Popen, PIPE, STDOUT
 
 def read_image(row, reader):
     return reader.read(c=row["C_index"],
@@ -23,15 +23,34 @@ def with_ipcluster(func):
         else:
             nproc=1
         command=["ipcluster","start","--profile","default","--n",str(nproc)]
-        with Popen(command) as proc:
+        try:
             print("starting ipcluster...")
-            sleep(10)
+            proc=Popen(command,stdout=PIPE, stderr=PIPE)
+            while True:
+                sleep(1)
+                outs=proc.stderr.readline().decode("ascii")
+                print(outs.replace("\n",""))
+                if "successfully" in outs:
+                    break
             print("started.")
-            try:
-                res=func(*args,**kwargs)
-            finally:
-                os.kill(proc.pid, signal.SIGINT)
-        return res
+            res=func(*args,**kwargs)
+        finally:
+            print("terminating ipcluster...")
+#            os.kill(proc.pid, signal.SIGTERM)
+            os.kill(proc.pid, signal.SIGINT)
+#            proc.terminate()
+#            proc.communicate()
+#        return res
+#        with Popen(command) as proc:
+#            print("starting ipcluster...")
+#            sleep(10)
+#            print("started.")
+#            try:
+#                res=func(*args,**kwargs)
+#            finally:
+#                os.kill(proc.pid, signal.SIGINT)
+##                proc.terminate()
+#        return res
     return wrapped
 
 

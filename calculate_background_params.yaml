@@ -1,0 +1,29 @@
+above_threshold_pixel_ratio_max: 0.05
+below_threshold_pixel_ratio_max: 0.05
+channel_names:
+- TL Phase
+- EGFP
+- Cy3
+- Cy5
+filename: 210413-HL60-atRA2-staining-01.czi
+intensity_bin_size: 25
+ipcluster_nproc: 20
+mean_mode:
+  0: 265.99875716010894
+  1: 67.73201739353954
+  2: 354.76934205050367
+  3: 781.9859341769695
+null_indices: []
+output_dir: 210413-HL60-atRA2-staining-01_analyzed
+ph_th_high: 1145.871375759843
+ph_th_low: -613.8738614396252
+quantile: 0.001
+sigma: 22.026431718061673
+stdev_mode:
+  0: 293.290872866578
+  1: 60.66244008529308
+  2: 384.2704658130037
+  3: 846.2989177251391
+th_factor: 3.0
+thumbnail_size: 20
+valid_ratio_threshold: 0.4

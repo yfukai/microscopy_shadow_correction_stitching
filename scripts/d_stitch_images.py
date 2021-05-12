@@ -10,7 +10,7 @@ MACRO_PATH=path.abspath(path.join(path.dirname(SCRIPT_PATH),'./stitch_images.ijm
 print(MACRO_PATH)
 
 def __parse_tile_configuration_filename(filename):
-    res=re.search("TileConfiguration_t([\d]+)_z([\d]+)_c([\d]+).txt",filename)
+    res=re.search(r"TileConfiguration_t([\d]+)_z([\d]+)_c([\d]+).txt",filename)
     return not res is None, res.groups(0) if not res is None else None
 
 def main(analyzed_dir,imagej_path="ImageJ",show_result=False):

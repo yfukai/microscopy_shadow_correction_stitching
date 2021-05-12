@@ -18,14 +18,11 @@ import fire
 from tqdm import tqdm
 from skimage.io import imsave
 
-script_path = path.dirname(path.abspath(__file__))
-cziutils_path = path.abspath(path.join(script_path, "../../../"))
-sys.path.append(cziutils_path)
-import cziutils # pylint: disable=import-error
+import pycziutils
 
-@cziutils.with_javabridge
+@pycziutils.with_javabridge
 def calculate_background(filename,
-                         analyzed_dir=None,
+                         output_dir,
                          image_export_channels=("Phase",),
                          modes=("divide","subtract","none")):
     if analyzed_dir is None:

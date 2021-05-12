@@ -20,6 +20,7 @@ import ipyparallel as ipp
 import javabridge
 import numpy as np
 from numpy import ma as ma
+from time import sleep
 import pandas as pd
 import xmltodict
 import h5py
@@ -34,12 +35,19 @@ from tqdm import tqdm
 
 import pycziutils
 
-from utils import *
+from utils import with_ipcluster,send_variable,check_ipcluster_variable_defined
+
+def read_image(row, reader):
+    return reader.read(c=row["C_index"],
+                       t=row["T_index"],
+                       series=row["S_index"],
+                       z=row["Z_index"],
+                       rescale=False)
 
 warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
 
-
+@ipp.require(read_image)
 def summarize_image(row, reader, thumbnail_size, quantile):
     import numpy as np
     from skimage import transform
@@ -99,7 +107,7 @@ def calculate_background(filename,
         f.write(meta)
 
     reader = pycziutils.get_tiled_reader(filename)
-    seriesCount, sizeT, sizeC, sizeX, sizeY, sizeZ = pycziutils.summarize_image_size(reader)
+    _, sizeT, sizeC, sizeX, sizeY, sizeZ = pycziutils.summarize_image_size(reader)
 
     pixel_sizes = pycziutils.parse_pixel_size(meta)
     assert pixel_sizes[1] == 'µm'
@@ -120,9 +128,14 @@ def calculate_background(filename,
     send_variable(dview,"summarize_image",summarize_image)
     dview.execute("_reader = pycziutils.get_tiled_reader(filename)")
     check_ipcluster_variable_defined(dview,"_reader",timeout=120)
+    sleep(10)
+    check_ipcluster_variable_defined(dview,"read_image",timeout=120)
+    check_ipcluster_variable_defined(dview,"summarize_image",timeout=120)
 
-    res = bview.map_async(
-        lambda row: summarize_image(row, _reader, thumbnail_size, quantile), # pylint: disable=undefined-variable
+    @ipp.require(summarize_image)
+    def _summarize_image(row):
+        return summarize_image(row, _reader, thumbnail_size, quantile) # pylint: disable=undefined-variable
+    res = bview.map_async(_summarize_image, 
         [row for _, row in list(positions_df.iterrows())]) 
     res.wait_interactive()
     keys = ["thumbnail", "max", "min", "mean", "median", "stdev"]
@@ -319,7 +332,7 @@ def calculate_background(filename,
             io.imsave(path.join(background_directory,filename + ".tiff"),
                       averaged_img,check_contrast=False)
 
-    params_path=path.join(background_directory,"params.yaml")
+    params_path=path.join(background_directory,"calculate_background_params.yaml")
     with open(params_path,"w") as f:
         yaml.dump(params_dict,f)
 #        for k, v in params_dict.items():
@@ -331,4 +344,9 @@ def calculate_background(filename,
 
 
 if __name__ == "__main__":
-    fire.Fire(calculate_background)
+    try:
+        calculate_background(snakemake.input["filename"],
+                             snakemake.input["output_dir_created"].replace(".created",""),
+                             ipcluster_nproc=snakemake.threads)
+    except NameError:
+        fire.Fire(calculate_background)
