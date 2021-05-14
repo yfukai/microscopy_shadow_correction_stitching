@@ -8,29 +8,29 @@ output_directory = config["output_directory"]
 rule all:
   input: 
 #    expand("{czi_file}_analyzed.created", czi_file=czi_files)
-    expand("{czi_file}_analyzed/.rescale_background.done", czi_file=czi_files)
+    expand("{czi_file}_analyzed/.calculate_background.done", czi_file=czi_files)
+#    expand("{czi_file}_analyzed/.rescale_background.done", czi_file=czi_files)
 
-#rule d_calculate_stitching:
-#  input:
-#    filename = "{czi_file}.czi", 
-#    output_dir_created = "{czi_file}_analyzed.created"
-#  output:
-#    touch("{czi_file}_analyzed/.rescale_background.done")
-#  threads:
-#    workflow.cores
-#  script:
-#    "scripts/a_calculate_background.py"
-# 
-#rule c_rescale_images:
-#  input:
-#    filename = "{czi_file}.czi", 
-#    output_dir_created = "{czi_file}_analyzed/.rescale_background.done"
-#  output:
-#    touch("{czi_file}_analyzed/.rescale_images.done")
-#  threads:
-#    workflow.cores
-#  script:
-#    "scripts/a_calculate_background.py"
+rule d_calculate_stitching:
+  input:
+    output_dir_created = "{czi_file}_analyzed/.rescale_images.done"
+  output:
+    touch("{czi_file}_analyzed/.calculate_stitching.done")
+  threads:
+    1
+  script:
+    "scripts/d_stitch_images.py"
+ 
+rule c_rescale_images:
+  input:
+    filename = "{czi_file}.czi", 
+    output_dir_created = "{czi_file}_analyzed/.rescale_background.done"
+  output:
+    touch("{czi_file}_analyzed/.rescale_images.done")
+  threads:
+    1
+  script:
+    "scripts/c_rescale_images.py"
  
 rule b_rescale_background:
   input:

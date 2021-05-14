@@ -116,11 +116,11 @@ def calculate_background(filename,
     ph_channel_index = [
         j for j, c in enumerate(channels) if "Phase" in c["@Fluor"]
     ][0]
-    positions_df = pycziutils.parse_planes(meta)
-    null_indices=positions_df.isnull().any(axis=1)
-    params_dict["null_indices"]=list(positions_df[null_indices].index)
-    positions_df=positions_df.loc[~null_indices,:]
-    positions_df["S_index"] = positions_df["image"]
+    planes_df = pycziutils.parse_planes(meta)
+    null_indices=planes_df.isnull().any(axis=1)
+    params_dict["null_indices"]=list(planes_df[null_indices].index)
+    planes_df=planes_df.loc[~null_indices,:]
+    planes_df["S_index"] = planes_df["image"]
 
     ############## Summarize image intensities ################
     send_variable(dview,"filename",path.abspath(filename))
@@ -136,17 +136,17 @@ def calculate_background(filename,
     def _summarize_image(row):
         return summarize_image(row, _reader, thumbnail_size, quantile) # pylint: disable=undefined-variable
     res = bview.map_async(_summarize_image, 
-        [row for _, row in list(positions_df.iterrows())]) 
+        [row for _, row in list(planes_df.iterrows())]) 
     res.wait_interactive()
     keys = ["thumbnail", "max", "min", "mean", "median", "stdev"]
     for i, k in enumerate(keys):
-        positions_df[k] = [r[i] for r in res.get()]
-    display(positions_df)
+        planes_df[k] = [r[i] for r in res.get()]
+    display(planes_df)
 
     ############## Calculate most frequent "standard" mean and stdev for a image ##############
     mean_mode = {}
     stdev_mode = {}
-    for iC, grp in positions_df.groupby("C_index"):
+    for iC, grp in planes_df.groupby("C_index"):
         fig, ax = plt.subplots(1, 1, figsize=(10, 10))
         c_name = channel_names[iC]
         h, *edges, im = ax.hist2d(grp["mean"],
@@ -172,13 +172,13 @@ def calculate_background(filename,
         "ph_th_high": float(th_high),
     })
 
-    ph_positions_df = positions_df[positions_df["C_index"] ==
+    ph_planes_df = planes_df[planes_df["C_index"] ==
                                    ph_channel_index].copy()
 
     thumbail_output_name="2_thresholded_thumbnail"
     thumbail_output_path=path.join(log_dir,thumbail_output_name)
     os.makedirs(thumbail_output_path,exist_ok=True)
-    for iS, grp in ph_positions_df.groupby("S_index"):
+    for iS, grp in ph_planes_df.groupby("S_index"):
         fig, axes = plt.subplots(1, 2, figsize=(10, 5))
         img_mean = grp["thumbnail"].iloc[0]
         axes[0].imshow(img_mean, vmin=th_low, vmax=th_high)
@@ -197,24 +197,24 @@ def calculate_background(filename,
     send_variable(dview,"threshold_image",threshold_image)
     res = bview.map_async(
         lambda row: threshold_image(row, _reader, sigma, th_low, th_high), # pylint: disable=undefined-variable
-        [row for _, row in list(ph_positions_df.iterrows())]) 
+        [row for _, row in list(ph_planes_df.iterrows())]) 
     res.wait_interactive()
     print("ok")
-    ph_positions_df["below_th_count"] = [r[0] for r in res.get()]
-    ph_positions_df["above_th_count"] = [r[1] for r in res.get()]
-    ph_positions_df["below_th_ratio"] = ph_positions_df["below_th_count"] / sizeX / sizeY
-    ph_positions_df["above_th_ratio"] = ph_positions_df["above_th_count"] / sizeX / sizeY
+    ph_planes_df["below_th_count"] = [r[0] for r in res.get()]
+    ph_planes_df["above_th_count"] = [r[1] for r in res.get()]
+    ph_planes_df["below_th_ratio"] = ph_planes_df["below_th_count"] / sizeX / sizeY
+    ph_planes_df["above_th_ratio"] = ph_planes_df["above_th_count"] / sizeX / sizeY
     print("ok")
-    ph_positions_df.drop("thumbnail",axis=1).to_csv(path.join(log_dir,"ph_positions.csv"))
+    ph_planes_df.drop("thumbnail",axis=1).to_csv(path.join(log_dir,"ph_planes_df.csv"))
 
     ############## judge if the position is valid to calculate background ##############
     fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-    ph_positions_df["is_valid"] = \
-        (ph_positions_df["below_th_ratio"] < below_threshold_pixel_ratio_max) & \
-        (ph_positions_df["above_th_ratio"] < above_threshold_pixel_ratio_max) 
-    ax.scatter(ph_positions_df["below_th_ratio"],
-               ph_positions_df["above_th_ratio"],
-               c=ph_positions_df["is_valid"],
+    ph_planes_df["is_valid"] = \
+        (ph_planes_df["below_th_ratio"] < below_threshold_pixel_ratio_max) & \
+        (ph_planes_df["above_th_ratio"] < above_threshold_pixel_ratio_max) 
+    ax.scatter(ph_planes_df["below_th_ratio"],
+               ph_planes_df["above_th_ratio"],
+               c=ph_planes_df["is_valid"],
                s=1,
                marker="o",
                cmap=plt.get_cmap("viridis"),
@@ -225,7 +225,7 @@ def calculate_background(filename,
     savefig(fig, f"4_threshold_results.pdf")
 
     series_df = pd.DataFrame()
-    for Si, grp in ph_positions_df.groupby("S_index"):
+    for Si, grp in ph_planes_df.groupby("S_index"):
         X = grp["X"].iloc[0]
         assert np.all(X == grp["X"])
         Y = grp["Y"].iloc[0]
@@ -253,22 +253,25 @@ def calculate_background(filename,
     savefig(fig, f"5_valid_positions.pdf")
 
     series_df["is_valid"] = series_df["is_valid_ratio"] > valid_ratio_threshold
-    series_df.drop("thumbnail",axis=1).to_csv(path.join("series_df"))
+    series_df.drop("thumbnail",axis=1).to_csv(path.join(output_dir,"series_df.csv"))
 
     valid_series = series_df[series_df["is_valid"]].index
-    valid_positions_df = positions_df[positions_df["S_index"].isin(valid_series)]
-    print("valid_positions:", len(valid_positions_df))
+    planes_df["is_valid"]=planes_df["S_index"].isin(valid_series)
+    valid_planes_df = planes_df[planes_df["is_valid"]]
+    print("valid_positions:", len(valid_planes_df))
+
+    planes_df.drop("thumbnail",axis=1).to_csv(path.join(output_dir,"planes_df.csv"))
 
     ############## calclulate backgrounds ##############
     #t.c.z.y.x
     median_images=np.empty((sizeT,sizeC,sizeZ,sizeY,sizeX))
     mean_images=np.empty((sizeT,sizeC,sizeZ,sizeY,sizeX))
-    assert np.array_equal(valid_positions_df["T_index"].unique(),np.arange(sizeT))
-    assert np.array_equal(valid_positions_df["C_index"].unique(),np.arange(sizeC))
-    assert np.array_equal(valid_positions_df["Z_index"].unique(),np.arange(sizeZ))
+    assert np.array_equal(valid_planes_df["T_index"].unique(),np.arange(sizeT))
+    assert np.array_equal(valid_planes_df["C_index"].unique(),np.arange(sizeC))
+    assert np.array_equal(valid_planes_df["Z_index"].unique(),np.arange(sizeZ))
 
     for (iC, iT, iZ), grp in \
-            tqdm(valid_positions_df.groupby(["C_index", "T_index", "Z_index"])):
+            tqdm(valid_planes_df.groupby(["C_index", "T_index", "Z_index"])):
         imgs = []
         for i, row in grp.iterrows():
             imgs.append(read_image(row, reader))

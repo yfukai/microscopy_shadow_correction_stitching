@@ -22,16 +22,24 @@ def with_ipcluster(func):
             nproc=kwargs["ipcluster_nproc"]
         else:
             nproc=1
+        if "ipcluster_timeout" in kwargs.keys():
+            timeout=kwargs["ipcluster_timeout"]
+        else:
+            timeout=100
         command=["ipcluster","start","--profile","default","--n",str(nproc)]
         try:
             print("starting ipcluster...")
             proc=Popen(command,stdout=PIPE, stderr=PIPE)
+            i=0
             while True:
                 sleep(1)
                 outs=proc.stderr.readline().decode("ascii")
                 print(outs.replace("\n",""))
                 if "successfully" in outs:
                     break
+                if i>timeout:
+                    raise TimeoutError("ipcluster timeout")
+                i=i+1
             print("started.")
             res=func(*args,**kwargs)
         finally:

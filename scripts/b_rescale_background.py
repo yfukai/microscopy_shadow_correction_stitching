@@ -33,20 +33,19 @@ import pycziutils # pylint: disable=import-error
 #script_path=path.dirname(os.path.realpath(__file__))
 #camera_dark_directory = path.abspath(
 #    path.join(script_path, "../../../camera-dark/analyzed/"))
-microscope_dict = {
-    'HDCamC13440-20CU': "AxioObserver",
-    'Axiocam503m': "LSM800"
-}
+#microscope_dict = {
+#    'HDCamC13440-20CU': "AxioObserver",
+#    'Axiocam503m': "LSM800"
+#}
 
 
 def get_camera_props(meta):
     meta_dict = xmltodict.parse(meta)
     camera = meta_dict["OME"]["Instrument"]["Detector"]["@Model"]
     camera_props={
-        "microscope" : microscope_dict[camera],
         "camera" : camera,
         "binning" : pycziutils.parse_binning(meta),
-        "LUT" : pycziutils.parse_camera_LUT(meta),
+        "LUT" : list(pycziutils.parse_camera_LUT(meta)),
         "bit_depth" : pycziutils.parse_camera_bits(meta),
     }
     return camera_props
@@ -62,6 +61,8 @@ def rescale_background(output_dir,
 
     log_dir=path.join(output_dir,"rescale_background_log")
     os.makedirs(log_dir,exist_ok=True)
+    rescaled_bg_directory = path.join(output_dir, "rescaled_background")
+    os.makedirs(rescaled_bg_directory,exist_ok=True)
 
     bg_directory = path.join(output_dir, "averaged_background")
     metadata_xml_name = path.join(output_dir, "metadata.xml")
@@ -79,7 +80,7 @@ def rescale_background(output_dir,
     #id_keys=["camera","binning_str","bit_depth","exposure","LUT"]
     boundary = pycziutils.parse_camera_roi_slice(meta)
     params_dict.update(camera_props)
-    params_dict.update({"boundary" : boundary})
+    params_dict.update({"boundary" : [[b.start,b.stop] for b in boundary]})
     print(params_dict)
 
     ############## Get corresponding camera dark image ################
@@ -141,7 +142,7 @@ def rescale_background(output_dir,
         fig, axes = plt.subplots(1, 4, figsize=(15, 3))
         for j, (img, name) in enumerate(zip(imgs, names)):
             if j > 1:
-                io.imsave(path.join(bg_directory,
+                io.imsave(path.join(rescaled_bg_directory,
                           f"{name}_{path.basename(image_path)}"),img)
             ims.append(axes[j].imshow(img))
             axes[j].set_title(name)
@@ -150,7 +151,8 @@ def rescale_background(output_dir,
         savefig(fig, f"9_rescaled_background_{path.basename(image_path)}.pdf")
 
     print(params_dict)
-    params_path=path.join(bg_directory,"rescale_background_params.yaml")
+    params_path=path.join(rescaled_bg_directory,
+                          "rescale_background_params.yaml")
     with open(params_path,"w") as f:
         yaml.dump(params_dict,f)
 
