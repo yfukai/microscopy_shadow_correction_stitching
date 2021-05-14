@@ -35,12 +35,20 @@ def rescale_images(filename,
     assert all([m in ["divide","subtract","none"] for m in modes])
     assert image_export_mode_index < len(modes)
 
+    averaged_background_yaml=path.join(output_dir,
+                                       "averaged_background",
+                                       "calculate_background_params.yaml")
     bg_directory = path.join(output_dir, "rescaled_background")
     metadata_xml_name = path.join(output_dir, "metadata.xml")
     planes_df_csv_name = path.join(output_dir, "planes_df.csv")
+#    print(planes_df_csv_name)
+    assert path.isfile(averaged_background_yaml)
     assert path.isdir(bg_directory)
     assert path.isfile(metadata_xml_name)
-    assert path.isdir(planes_df_csv_name)
+    assert path.isfile(planes_df_csv_name)
+
+    with open(averaged_background_yaml,"r") as f:
+        channel_names=yaml.safe_load(f)["channel_names"]
 
     image_directory = path.join(output_dir, "rescaled_images")
     stitching_tiff_directory = path.join(output_dir, "rescaled_images_for_stitching_tiff")
@@ -91,8 +99,8 @@ def rescale_images(filename,
     params_dict["background_key"]=background_key
     backgroundss = {}
     for iC,iZ in itertools.product(range(sizeC),range(sizeZ)):
-        bg_image_path=path.join(output_dir,"averaged_background",
-                           f"{background_key}_C{iC}_{channels[iC]}_Z{iZ}.tiff")
+        bg_image_path=path.join(bg_directory,
+            f"{background_key}_C{iC}_{channel_names[iC]}_Z{iZ}.tiff")
 
         background=imread(bg_image_path)
         while np.any(background<=0):
@@ -120,26 +128,26 @@ def rescale_images(filename,
         os.makedirs(image_directory2,exist_ok=True)
 
         for s, grp in tqdm(list(planes_df.groupby("image"))):
-            rescaled_image=np.zeros(sizeT,sizeC,sizeZ,sizeY,sizeX,dtype=np.float32)
+#            rescaled_image=np.zeros((sizeT,sizeZ,sizeC,sizeY,sizeX),dtype=np.float32)
             for _, row in grp.iterrows():
                 c,t,z=int(row["C_index"]),int(row["T_index"]),int(row["Z_index"])
-                background=backgroundss[(c,z)]
-                img=reader.read(c=c,t=t,z=z,series=s,rescale=False)
-                if mode=="divide":
-                    rescaled_image[t,c,z,:,:]=(img-camera_dark_img)/background
-                elif mode=="subtract":
-                    rescaled_image[t,c,z,:,:]=img-camera_dark_img-background
+#                background=backgroundss[(c,z)]
+#                img=reader.read(c=c,t=t,z=z,series=s,rescale=False)
+#                if mode=="divide":
+#                    rescaled_image[t,z,c,:,:]=(img-camera_dark_img)/background
+#                elif mode=="subtract":
+#                    rescaled_image[t,z,c,:,:]=img-camera_dark_img-background
             rescaled_image_path=path.join(image_directory2,
                                    f"S{s:03d}_{row['row_col_label']}.ome.tiff",)
-            xtiff.to_tiff(rescaled_image,
-                          rescaled_image_path, 
-                          channel_names=channels,
-                          profile=xtiff.TiffProfile.OME_TIFF)
-            assert not s in rescaled_image_paths.keys()
+#            xtiff.to_tiff(rescaled_image,
+#                          rescaled_image_path, 
+#                          channel_names=channels,
+#                          profile=xtiff.tiff.TiffProfile.OME_TIFF)
+#            assert not s in rescaled_image_paths.keys()
             rescaled_image_paths[s]=rescaled_image_path
         rescaled_image_pathss.append(rescaled_image_paths)
 
-    planes_df.to_csv(output_dir,"planes_df2.csv")
+    planes_df.to_csv(path.join(output_dir,"planes_df2.csv"))
 
     ############## save images into TIFFs ################
 
@@ -148,7 +156,9 @@ def rescale_images(filename,
         assert len(c_indices)==1
         c_index=c_indices[0]
         rescaled_image_path=rescaled_image_pathss[image_export_mode_index][0]
-        first_img=imread(rescaled_image_path)[0,c_index,0,:,:]
+        first_img=imread(rescaled_image_path)#[0,c_index,0,:,:]
+        print(first_img.shape)
+        first_img=first_img[0,c_index,0,:,:]
         img_min=np.min(first_img)
         img_max=np.max(first_img)
         selected_planes_df=planes_df[planes_df["C_index"]==c_index]
