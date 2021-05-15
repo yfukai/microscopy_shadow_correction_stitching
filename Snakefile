@@ -8,8 +8,10 @@ output_directory = config["output_directory"]
 rule all:
   input: 
 #    expand("{czi_file}_analyzed.created", czi_file=czi_files)
-    expand("{czi_file}_analyzed/.calculate_background.done", czi_file=czi_files)
+#    expand("{czi_file}_analyzed/.calculate_background.done", czi_file=czi_files)
 #    expand("{czi_file}_analyzed/.rescale_background.done", czi_file=czi_files)
+#    expand("{czi_file}_analyzed/.rescale_images.done", czi_file=czi_files)
+    expand("{czi_file}_analyzed/.calculate_stitching.done", czi_file=czi_files)
 
 rule d_calculate_stitching:
   input:

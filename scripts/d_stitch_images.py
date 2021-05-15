@@ -13,9 +13,9 @@ def __parse_tile_configuration_filename(filename):
     res=re.search(r"TileConfiguration_t([\d]+)_z([\d]+)_c([\d]+).txt",filename)
     return not res is None, res.groups(0) if not res is None else None
 
-def main(analyzed_dir,imagej_path="ImageJ",show_result=False):
-    analyzed_dir=path.abspath(analyzed_dir)
-    rescaled_tiff_dir=path.join(analyzed_dir,"rescaled_images_tiff")
+def main(output_dir,imagej_path="ImageJ",show_result=False):
+    output_dir=path.abspath(output_dir)
+    rescaled_tiff_dir=path.join(output_dir,"rescaled_images_for_stitching_tiff")
     tile_configuration_files=\
         glob(path.join(rescaled_tiff_dir,"TileConfiguration*.txt"))
     res=list(map(__parse_tile_configuration_filename,tile_configuration_files))
@@ -30,4 +30,7 @@ def main(analyzed_dir,imagej_path="ImageJ",show_result=False):
         call(command,shell=True)
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    try:
+        main(path.dirname(snakemake.input["output_dir_created"]))
+    except NameError:
+        fire.Fire(main)

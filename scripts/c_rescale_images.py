@@ -18,7 +18,8 @@ from matplotlib import pyplot as plt
 import fire
 from tqdm import tqdm
 from skimage.io import imsave, imread
-import xtiff
+import zarr
+from dask import bag as db
 
 import pycziutils
 
@@ -58,6 +59,7 @@ def rescale_images(filename,
     os.makedirs(log_dir,exist_ok=True)
 
     params_dict = locals()
+    del params_dict["f"]
 
     def savefig(fig, name):
         fig.savefig(path.join(log_dir, name), bbox_inches="tight")
@@ -125,25 +127,25 @@ def rescale_images(filename,
         rescaled_image_paths={}
         image_key=f"rescaled_image_{mode}"
         image_directory2=path.join(image_directory,image_key)
-        os.makedirs(image_directory2,exist_ok=True)
+#        os.makedirs(image_directory2,exist_ok=True)
 
         for s, grp in tqdm(list(planes_df.groupby("image"))):
-#            rescaled_image=np.zeros((sizeT,sizeZ,sizeC,sizeY,sizeX),dtype=np.float32)
+            rescaled_image_path=path.join(image_directory2,
+                    f"S{s:03d}_{grp.iloc[0]['row_col_label']}.zarr",)
+            rescaled_image=zarr.open(rescaled_image_path,
+                                     mode="w",
+                                     shape=(sizeT,sizeZ,sizeC,sizeY,sizeX),
+                                     chunks=(1,sizeZ,sizeC,sizeY,sizeX),
+                                     dtype=np.float32)
             for _, row in grp.iterrows():
                 c,t,z=int(row["C_index"]),int(row["T_index"]),int(row["Z_index"])
-#                background=backgroundss[(c,z)]
-#                img=reader.read(c=c,t=t,z=z,series=s,rescale=False)
-#                if mode=="divide":
-#                    rescaled_image[t,z,c,:,:]=(img-camera_dark_img)/background
-#                elif mode=="subtract":
-#                    rescaled_image[t,z,c,:,:]=img-camera_dark_img-background
-            rescaled_image_path=path.join(image_directory2,
-                                   f"S{s:03d}_{row['row_col_label']}.ome.tiff",)
-#            xtiff.to_tiff(rescaled_image,
-#                          rescaled_image_path, 
-#                          channel_names=channels,
-#                          profile=xtiff.tiff.TiffProfile.OME_TIFF)
-#            assert not s in rescaled_image_paths.keys()
+                background=backgroundss[(c,z)]
+                img=reader.read(c=c,t=t,z=z,series=s,rescale=False)
+                if mode=="divide":
+                    rescaled_image[t,z,c,:,:]=(img-camera_dark_img)/background
+                elif mode=="subtract":
+                    rescaled_image[t,z,c,:,:]=img-camera_dark_img-background
+            assert not s in rescaled_image_paths.keys()
             rescaled_image_paths[s]=rescaled_image_path
         rescaled_image_pathss.append(rescaled_image_paths)
 
@@ -156,7 +158,7 @@ def rescale_images(filename,
         assert len(c_indices)==1
         c_index=c_indices[0]
         rescaled_image_path=rescaled_image_pathss[image_export_mode_index][0]
-        first_img=imread(rescaled_image_path)#[0,c_index,0,:,:]
+        first_img=zarr.open(rescaled_image_path,mode="r")#[0,c_index,0,:,:]
         print(first_img.shape)
         first_img=first_img[0,c_index,0,:,:]
         img_min=np.min(first_img)
@@ -171,7 +173,7 @@ def rescale_images(filename,
                 for j, row in grp.iterrows():
                     c,t,z,s=int(row["C_index"]),int(row["T_index"]),int(row["Z_index"]),int(row["image"]) 
                     rescaled_image_path=rescaled_image_pathss[image_export_mode_index][s]
-                    img=imread(rescaled_image_path)[t,c,z,:,:]
+                    img=zarr.open(rescaled_image_path,mode="r")[t,c,z,:,:]
                     img=((img-img_min)/(img_max-img_min)*256).astype(np.uint8)
                     imgname=f'rescaled_t{t+1:03d}'\
                             f'_row{int(row["Y_index"])+1:03d}'\
