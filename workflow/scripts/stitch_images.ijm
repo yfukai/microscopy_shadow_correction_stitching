@@ -9,7 +9,7 @@ run("Grid/Collection stitching",
 	"order=[Defined by TileConfiguration] "+
 	"directory="+directory+" "+
 	"layout_file="+layout_file+" "+
-	"fusion_method=[Linear Blending] "+
+	"fusion_method=[Do not fuse images (only write TileConfiguration)] "+
 	"regression_threshold=0.30 "+
 	"max/avg_displacement_threshold=2.50 "+
 	"absolute_displacement_threshold=3.50 "+

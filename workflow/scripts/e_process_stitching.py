@@ -4,7 +4,7 @@ import os
 from os import path
 import re
 import h5py
-import z5py
+import zarr
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
@@ -174,35 +174,37 @@ def stitching(stitching_result_txt,
     #stitched_mask=reorder_labels(stitched_mask)
     return stitched_image,stitched_mask
 
-def process_stitching(analyzed_dir,
-                      mask_zarr_suffix,
-                      rescale_method="divide"):
-    rescaled_image_path=path.join(analyzed_dir,"rescaled_image.hdf5")
-    mask_zarr_path=path.join(analyzed_dir,f"cellpose_predicted_{mask_zarr_suffix}.zr")
+def process_stitching(output_dir,
+                      stitching_csv_path=None,
+                      rescale_methods=["divide"]):
     
-    stitching_log_directory=path.join(analyzed_dir,"stitching_log")
+    if stitching_csv_path is None:
+        stitching_csv_path=path.join(output_dir,
+            "rescaled_images_for_stitching_tiff",
+            "TileConfiguration.registered.txt")
+    rescaled_image_directory=path.join(output_dir,"rescaled_images")
+    stitching_log_directory=path.join(output_dir,"stitching_log")
     os.makedirs(stitching_log_directory,exist_ok=True)
-    output_zarr_path=path.join(analyzed_dir,"stitched_image.zr")
-    output_zarr=z5py.File(output_zarr_path,"w")
-    
-    rescaled_image_key=f"rescaled_image_{rescale_method}"
-    with h5py.File(rescaled_image_path) as h5f:
-        for k,v in h5f.attrs.items():
-            if isinstance(v, np.ndarray):
-                v=list(v)
-            output_zarr.attrs[k]=v
-        ds=h5f[rescaled_image_key]
-        dimension_order=ds.attrs["dimension_order"]
-        channels=ds.attrs["channels"]
+
+    params_dict=locals()
+
+    planes_df=pd.read_hdf(output_dir,"planes_df2.csv")
+
+
+    for rescale_method in rescale_methods:
+        rescaled_image_key=f"rescaled_image_{rescale_method}"
+        rescaled_image_directory2=path.join(rescaled_image_directory,rescaled_image_key)
+        assert path.isdir(rescaled_image_directory2)
+        output_zarr_path=path.join(output_dir,"stitched_image_{rescale_method}.zarr")
+        output_zarr=zarr.open(output_zarr_path,mode="r")
         channels=list(map(lambda x:x.decode("ascii"),channels))
     
-    planes_df=pd.read_hdf(rescaled_image_path,"planes_df")
     
     t_z_indices=[(t,z) for (t,z),_ in planes_df.groupby(["T_index","Z_index"])]
     
     def execute_stitching_for_single_plane(args):
         t,z=args
-        stitching_result_txt=path.join(analyzed_dir,
+        stitching_result_txt=path.join(output_dir,
             f"rescaled_images_tiff/TileConfiguration_t{t+1:03d}_z{z+1:03d}_c001.registered.txt")
         stitching_log_directory2=path.join(stitching_log_directory,f"t{t+1:03d}_z{z+1:03d}")
         os.makedirs(stitching_log_directory2,exist_ok=True)

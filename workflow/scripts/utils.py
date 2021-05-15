@@ -5,6 +5,9 @@ from time import sleep
 import os
 import signal
 from subprocess import Popen, PIPE, STDOUT
+import re
+import numpy as np
+import pandas as pd
 
 def read_image(row, reader):
     return reader.read(c=row["C_index"],
@@ -77,3 +80,20 @@ def send_variable(dview,name,variable,timeout=10):
     dview.push({name:variable})
     sleep(1)
     check_ipcluster_variable_defined(dview,name,timeout)
+
+def parse_stitching_result(filename):
+    pattern=r"rescaled_t([\d]+)_row([\d]+)_col([\d]+)_color([\d]+)\.tiff; ; \(([\-\d\.]+), ([\-\d\.]+)\)"
+    names=["t","row","col","color","pos_x","pos_y"]
+    parsed_result=[]
+    with open(filename,"r") as f:
+        for line in f.readlines():
+            res=re.search(pattern,line)
+            if not res is None:
+                parsed_result.append(dict(zip(names,res.groups())))
+    stitching_result_df=pd.DataFrame.from_records(parsed_result)    
+    for k in names[:4]:
+        stitching_result_df[k]=stitching_result_df[k].astype(np.int32)
+    for k in names[4:]:
+        stitching_result_df[k]=stitching_result_df[k].astype(np.float64)
+    return stitching_result_df
+
