@@ -14,7 +14,6 @@ run("Grid/Collection stitching",
 	"max/avg_displacement_threshold=2.50 "+
 	"absolute_displacement_threshold=3.50 "+
 	"compute_overlap "+
-	"subpixel_accuracy "+
 	"display_fusion "+
-	"computation_parameters=[Save memory (but be slower)] "+
+	"computation_parameters=[Save computation time (but use more RAM)] "+
 	"image_output=[Fuse and display]");

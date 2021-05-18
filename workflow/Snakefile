@@ -6,6 +6,7 @@ czi_files = [f[:-4] for f in czi_files if path.isfile(f)]
 output_directory = config["output_directory"]
 
 #configfile: "config/config.yaml"
+#configfile: "../config/config.yaml"
 
 rule all:
   input: 
@@ -13,7 +14,8 @@ rule all:
 #    expand("{czi_file}_analyzed/.calculate_background.done", czi_file=czi_files)
 #    expand("{czi_file}_analyzed/.rescale_background.done", czi_file=czi_files)
 #    expand("{czi_file}_analyzed/.rescale_images.done", czi_file=czi_files)
-    expand("{czi_file}_analyzed/.calculate_stitching.done", czi_file=czi_files)
+#    expand("{czi_file}_analyzed/.calculate_stitching.done", czi_file=czi_files)
+    expand("{czi_file}_analyzed/.process_stitching.done", czi_file=czi_files)
 
 #rule d2_summraize_stitching:
 #  input:
@@ -24,6 +26,16 @@ rule all:
 #    1
 #  script:
 #    scripts/d2_summarize_stitching.py
+
+rule e_process_stitching:
+  input:
+    output_dir_created = "{czi_file}_analyzed/.calculate_stitching.done"
+  output:
+    touch("{czi_file}_analyzed/.process_stitching.done"),
+  threads:
+    1
+  script:
+    "scripts/e_process_stitching.py"
     
 rule d_calculate_stitching:
   input:

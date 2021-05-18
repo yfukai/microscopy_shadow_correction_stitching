@@ -17,7 +17,9 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import fire
 from tqdm import tqdm
+from skimage import transform, filters
 from skimage.io import imsave, imread
+from skimage.morphology import disk
 import zarr
 from dask import bag as db
 
@@ -28,6 +30,9 @@ def rescale_images(filename,
                          output_dir,
                          background_method="median",
                          background_smoothing=True,
+                         nonuniform_background_subtract_channels=("Phase",),
+                         nonuniform_background_shrink_factor=0.05,
+                         nonuniform_background_median_disk_size=5,
                          image_export_channels=("Phase",),
                          image_export_mode_index=0,
                          modes=("divide","subtract")):
@@ -69,6 +74,7 @@ def rescale_images(filename,
         meta = "".join(f.readlines())
     channels=pycziutils.parse_channels(meta)
     px_sizes=[float(s) for s in pycziutils.parse_pixel_size(meta)[::2]]
+    print(px_sizes)
 
     planes_df=pd.read_csv(planes_df_csv_name)
     Xs=np.sort(planes_df["X"].unique())
@@ -123,6 +129,14 @@ def rescale_images(filename,
         axis=1)
     
     rescaled_image_pathss=[]
+
+    nonuniform_background_subtract_c_indices=[
+        [j for j,c in enumerate(channels) if c_name in c["@Fluor"]]
+            for c_name in nonuniform_background_subtract_channels]
+    assert all([len(js)==1 for js in nonuniform_background_subtract_c_indices])
+    nonuniform_background_subtract_c_indices=\
+        [js[0] for js in nonuniform_background_subtract_c_indices]
+
     for mode in modes:
         rescaled_image_paths={}
         image_key=f"rescaled_image_{mode}"
@@ -134,17 +148,23 @@ def rescale_images(filename,
                     f"S{s:03d}_{grp.iloc[0]['row_col_label']}.zarr",)
             rescaled_image=zarr.open(rescaled_image_path,
                                      mode="w",
-                                     shape=(sizeT,sizeZ,sizeC,sizeY,sizeX),
-                                     chunks=(1,sizeZ,sizeC,sizeY,sizeX),
+                                     shape=(sizeT,sizeC,sizeZ,sizeY,sizeX),
+                                     chunks=(1,sizeC,sizeZ,sizeY,sizeX),
                                      dtype=np.float32)
             for _, row in grp.iterrows():
                 c,t,z=int(row["C_index"]),int(row["T_index"]),int(row["Z_index"])
                 background=backgroundss[(c,z)]
                 img=reader.read(c=c,t=t,z=z,series=s,rescale=False)
                 if mode=="divide":
-                    rescaled_image[t,z,c,:,:]=(img-camera_dark_img)/background
+                    img=(img-camera_dark_img)/background
                 elif mode=="subtract":
-                    rescaled_image[t,z,c,:,:]=img-camera_dark_img-background
+                    img=img-camera_dark_img-background
+                if c in nonuniform_background_subtract_c_indices:
+                    img_small=transform.rescale(img,nonuniform_background_shrink_factor,preserve_range=True,)
+                    img_small_bg=filters.median(img_small,disk(nonuniform_background_median_disk_size))
+                    img_bg=transform.resize(img_small_bg,img.shape,preserve_range=True)
+                    img=img-img_bg
+                rescaled_image[t,c,z,:,:]=img
             assert not s in rescaled_image_paths.keys()
             rescaled_image_paths[s]=rescaled_image_path
         rescaled_image_pathss.append(rescaled_image_paths)
@@ -174,7 +194,7 @@ def rescale_images(filename,
                     c,t,z,s=int(row["C_index"]),int(row["T_index"]),int(row["Z_index"]),int(row["image"]) 
                     rescaled_image_path=rescaled_image_pathss[image_export_mode_index][s]
                     img=zarr.open(rescaled_image_path,mode="r")[t,c,z,:,:]
-                    img=((img-img_min)/(img_max-img_min)*256).astype(np.uint8)
+                    img=((img-img_min)/(img_max-img_min)*255).astype(np.uint8)
                     imgname=f'rescaled_t{t+1:03d}'\
                             f'_row{int(row["Y_index"])+1:03d}'\
                             f'_col{int(row["X_index"])+1:03d}'\
