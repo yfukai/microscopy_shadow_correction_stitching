@@ -171,43 +171,43 @@ def rescale_images(filename,
 
     planes_df.to_csv(path.join(output_dir,"planes_df2.csv"))
 
-    ############## save images into TIFFs ################
-
-    for c_name in image_export_channels:
-        c_indices=[j for j,c in enumerate(channels) if c_name in c["@Fluor"]]
-        assert len(c_indices)==1
-        c_index=c_indices[0]
-        rescaled_image_path=rescaled_image_pathss[image_export_mode_index][0]
-        first_img=zarr.open(rescaled_image_path,mode="r")#[0,c_index,0,:,:]
-        print(first_img.shape)
-        first_img=first_img[0,c_index,0,:,:]
-        img_min=np.min(first_img)
-        img_max=np.max(first_img)
-        selected_planes_df=planes_df[planes_df["C_index"]==c_index]
-
-        for (t,z),grp in tqdm(list(selected_planes_df.groupby(["T_index","Z_index"]))):
-            configuration_csv_path=path.join(stitching_tiff_directory,
-                f"TileConfiguration_t{t+1:03d}_z{z+1:03d}_c{c_index+1:03d}.txt")
-            with open(configuration_csv_path,"w") as fc:
-                fc.write("dim = 2\n")
-                for j, row in grp.iterrows():
-                    c,t,z,s=int(row["C_index"]),int(row["T_index"]),int(row["Z_index"]),int(row["image"]) 
-                    rescaled_image_path=rescaled_image_pathss[image_export_mode_index][s]
-                    img=zarr.open(rescaled_image_path,mode="r")[t,c,z,:,:]
-                    img=((img-img_min)/(img_max-img_min)*255).astype(np.uint8)
-                    imgname=f'rescaled_t{t+1:03d}'\
-                            f'_row{int(row["Y_index"])+1:03d}'\
-                            f'_col{int(row["X_index"])+1:03d}'\
-                            f'_color{int(row["C_index"]):03d}'\
-                            ".tiff"
-                    imsave(path.join(stitching_tiff_directory,imgname),
-                           img,check_contrast=False)
-                    fc.write(f'{imgname}; ; ({row["X_pixel"]}, {row["Y_pixel"]})\n')
-
-    print(params_dict)
-    params_path=path.join(bg_directory,"rescale_images_params.yaml")
-    with open(params_path,"w") as f:
-        yaml.dump(params_dict,f)           
+#    ############## save images into TIFFs ################
+#
+#    for c_name in image_export_channels:
+#        c_indices=[j for j,c in enumerate(channels) if c_name in c["@Fluor"]]
+#        assert len(c_indices)==1
+#        c_index=c_indices[0]
+#        rescaled_image_path=rescaled_image_pathss[image_export_mode_index][0]
+#        first_img=zarr.open(rescaled_image_path,mode="r")#[0,c_index,0,:,:]
+#        print(first_img.shape)
+#        first_img=first_img[0,c_index,0,:,:]
+#        img_min=np.min(first_img)
+#        img_max=np.max(first_img)
+#        selected_planes_df=planes_df[planes_df["C_index"]==c_index]
+#
+#        for (t,z),grp in tqdm(list(selected_planes_df.groupby(["T_index","Z_index"]))):
+#            configuration_csv_path=path.join(stitching_tiff_directory,
+#                f"TileConfiguration_t{t+1:03d}_z{z+1:03d}_c{c_index+1:03d}.txt")
+#            with open(configuration_csv_path,"w") as fc:
+#                fc.write("dim = 2\n")
+#                for j, row in grp.iterrows():
+#                    c,t,z,s=int(row["C_index"]),int(row["T_index"]),int(row["Z_index"]),int(row["image"]) 
+#                    rescaled_image_path=rescaled_image_pathss[image_export_mode_index][s]
+#                    img=zarr.open(rescaled_image_path,mode="r")[t,c,z,:,:]
+#                    img=((img-img_min)/(img_max-img_min)*255).astype(np.uint8)
+#                    imgname=f'rescaled_t{t+1:03d}'\
+#                            f'_row{int(row["Y_index"])+1:03d}'\
+#                            f'_col{int(row["X_index"])+1:03d}'\
+#                            f'_color{int(row["C_index"]):03d}'\
+#                            ".tiff"
+#                    imsave(path.join(stitching_tiff_directory,imgname),
+#                           img,check_contrast=False)
+#                    fc.write(f'{imgname}; ; ({row["X_pixel"]}, {row["Y_pixel"]})\n')
+#
+#    print(params_dict)
+#    params_path=path.join(bg_directory,"rescale_images_params.yaml")
+#    with open(params_path,"w") as f:
+#        yaml.dump(params_dict,f)           
 
 if __name__ == "__main__":
     try:
