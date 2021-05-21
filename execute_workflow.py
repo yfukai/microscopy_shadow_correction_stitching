@@ -15,9 +15,6 @@ def main(working_directory,
     os.chdir(path.dirname(SCRIPT_PATH))
     working_directory=path.abspath(working_directory)
     output_directory=path.abspath(output_directory)
-#    snakemake -j20 -d /mnt/showers/LSM800/ImageData/Fukai/2021-04-23-timelapse/ 
-#     --config output_directory=/mnt/showers2/TEMPORARY/Fukai-ImageAnalysis/LSM800-2021-04-23-timelapse/ 
-#     camera_dark_path=/mnt/showers/AxioObserver7/ImageData/Fukai/camera-dark/analyzed/ -k --restart-times 3 --configfile=config/config.yaml -R c_rescale_images --until c_rescale_images
     command = f"snakemake -j{n_cores} -d \"{working_directory}\" " + \
               f"--config output_directory=\"{output_directory}\" " + \
                        f" camera_dark_path=\"{camera_dark_image_path}\" " + \
