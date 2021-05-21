@@ -29,7 +29,7 @@ execute_workflow.py N_CORES WORKING_DIRECTORY OUTPUT_DIRECTORY CAMERA_DARK_IMAGE
 - N_CORES ... the number of the cores to use
 - WORKING_DIRECTORY ... the directory containing CZI files (can be nested)
 - OUTPUT_DIRECTORY ... the directory to output the results (/path/to/output/directory in this case)
-- CAMERA_DARK_IMAGE_PATH (optional) ... the path for the dark background image of the camera.
+- CAMERA_DARK_IMAGE_PATH (optional) ... the path for the dark background image of the camera. Can be either of :
   - path to a image file, read by `skimage.io.imread`
   - path to a directory, with files `a.tiff`, `a.yaml`, `b.tiff`, `b.yaml` ... (the file names can be arbitrary).
     In this case, The YAML files must have keys `"LUT"`, `"binning"`, and `"bit_depth"`. 
