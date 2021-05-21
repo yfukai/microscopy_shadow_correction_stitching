@@ -18,7 +18,7 @@ cd czi_shadow_correction_stitching
 ```bash
 mkdir /path/to/output/directory
 ```
-3. edit the configuration (option)
+3. edit the configuration (optional)
 ```bash
 vim config/config.yaml
 ```
