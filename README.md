@@ -36,4 +36,5 @@ execute_workflow.py N_CORES WORKING_DIRECTORY OUTPUT_DIRECTORY CAMERA_DARK_IMAGE
     The TIFF file is used if the accompanying YAML file has the same properties as the input CZI file.
   - if not provided, an image filled with zero is used as the background.
 
-5. typically a file named `/path/to/output/directory/`
+5. for each "WORKING_DIRECTORY/aaa/bbb.czi", a directory named "OUTPUT_DIRECTORY/aaa/bbb_analyzed" is created.
+   The final artifact is `stitched_image_divide.zarr` (or `stitched_image_subtract.zarr`) in that directory.
