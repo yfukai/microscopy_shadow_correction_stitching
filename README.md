@@ -27,7 +27,7 @@ vim config/config.yaml
 execute_workflow.py WORKING_DIRECTORY OUTPUT_DIRECTORY CAMERA_DARK_IMAGE_PATH N_CORES
 ```
 
-- WORKING_DIRECTORY ... the directory containing CZI files
+- WORKING_DIRECTORY ... the directory containing CZI files (can be nested)
 - OUTPUT_DIRECTORY ... the directory to output the results (/path/to/output/directory in this case)
 - CAMERA_DARK_IMAGE_PATH ... the path for the dark background image of the camera. This can be:
   - path to a image file, read by `skimage.io.imread`
