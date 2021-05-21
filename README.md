@@ -24,14 +24,16 @@ vim config/config.yaml
 ```
 4. run the workflow
 ```bash
-execute_workflow.py WORKING_DIRECTORY OUTPUT_DIRECTORY CAMERA_DARK_IMAGE_PATH N_CORES
+execute_workflow.py N_CORES WORKING_DIRECTORY OUTPUT_DIRECTORY CAMERA_DARK_IMAGE_PATH 
 ```
-
+- N_CORES ... the number of the cores to use
 - WORKING_DIRECTORY ... the directory containing CZI files (can be nested)
 - OUTPUT_DIRECTORY ... the directory to output the results (/path/to/output/directory in this case)
-- CAMERA_DARK_IMAGE_PATH ... the path for the dark background image of the camera. This can be:
+- CAMERA_DARK_IMAGE_PATH (optional) ... the path for the dark background image of the camera.
   - path to a image file, read by `skimage.io.imread`
   - path to a directory, with files `a.tiff`, `a.yaml`, `b.tiff`, `b.yaml` ... (the file names can be arbitrary).
     In this case, The YAML files must have keys `"LUT"`, `"binning"`, and `"bit_depth"`. 
     The TIFF file is used if the accompanying YAML file has the same properties as the input CZI file.
-- N_CORES ... the number of the cores to use
+  - if not provided, an image filled with zero is used as the background.
+
+5. typically a file named `/path/to/output/directory/`
