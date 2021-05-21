@@ -27,10 +27,10 @@ def main(working_directory,
     git_description = check_output(["git", "describe","--always"]).strip()
     with open(path.join(output_directory,
                         "shadow_correction_stitching_config.yaml"),"w") as f:
-        yaml.dump(f,{
+        yaml.dump({
             "command":command,
             "git_description":git_description,
-        })
+        },f)
     print(command)
     call(command,shell=True)
 
