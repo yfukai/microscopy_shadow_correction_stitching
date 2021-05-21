@@ -43,32 +43,32 @@ def process_stitching(output_dir,
     planes_df=pd.read_csv(path.join(output_dir,"planes_df2.csv"))
     stitching_df=pd.read_csv(stitching_csv_path,index_col=0)
 
-    planes_df["X_index2"]=(planes_df["X_index"]+1).astype(np.int32)
-    planes_df["Y_index2"]=(planes_df["Y_index"]+1).astype(np.int32)
     stitching_df2=pd.merge(stitching_df,planes_df,
-                                  left_on=("col","row"),
-                                  right_on=("X_index2","Y_index2"),
+                                  left_on=("row","col"),
+                                  right_on=("X_index","Y_index"),
                                   how="right")
-    stitching_df2["pos_x"]=np.round(stitching_df2["pos_x_median"]).astype(np.int32)
-    stitching_df2["pos_y"]=np.round(stitching_df2["pos_y_median"]).astype(np.int32)
-    shift_x=stitching_df2["pos_x"].min()
-    shift_y=stitching_df2["pos_y"].min()
+    stitching_df2["x_pos"]=np.round(stitching_df2["x_pos_median"]).astype(np.int32)
+    stitching_df2["y_pos"]=np.round(stitching_df2["y_pos_median"]).astype(np.int32)
+    shift_x=stitching_df2["x_pos"].min()
+    shift_y=stitching_df2["y_pos"].min()
 
-    stitching_df2["pos_x"]=stitching_df2["pos_x"]-shift_x
-    stitching_df2["pos_y"]=stitching_df2["pos_y"]-shift_y
+    stitching_df2["x_pos"]=stitching_df2["x_pos"]-shift_x
+    stitching_df2["y_pos"]=stitching_df2["y_pos"]-shift_y
+    stitching_df2["x_pos2"]=stitching_df2["y_pos"]
+    stitching_df2["y_pos2"]=stitching_df2["x_pos"]
 #    return stitching_df2
 
 #    if fix_stitching_outlier:
 #        
 
     fig,axes=plt.subplots(1,2,figsize=(10,5))
-    im=axes[0].scatter(stitching_df2["pos_x"],
-                stitching_df2["pos_y"],
+    im=axes[0].scatter(stitching_df2["x_pos2"],
+                stitching_df2["y_pos2"],
                 c=stitching_df2["row"],
                 cmap=plt.cm.Paired)
     fig.colorbar(im,ax=axes[0],label="row")
-    im=axes[1].scatter(stitching_df2["pos_x"],
-                stitching_df2["pos_y"],
+    im=axes[1].scatter(stitching_df2["x_pos2"],
+                stitching_df2["y_pos2"],
                 c=stitching_df2["col"],
                 cmap=plt.cm.Paired)
     fig.colorbar(im,ax=axes[1],label="col")
@@ -76,9 +76,9 @@ def process_stitching(output_dir,
                           "stitching1_row_and_col_position.pdf"))
 
     fig,ax=plt.subplots(1,1)
-    ax.plot(stitching_df2["pos_x"]-stitching_df2["X"],
+    ax.plot(stitching_df2["x_pos2"]-stitching_df2["X"],
             label="x")
-    ax.plot(stitching_df2["pos_y"]-stitching_df2["Y"],
+    ax.plot(stitching_df2["y_pos2"]-stitching_df2["Y"],
             label="y")
     ax.set_xlabel("series")
     ax.set_ylabel("difference b/w original and assigned position (px)")
@@ -87,8 +87,8 @@ def process_stitching(output_dir,
                           "stitching2_position_difference.pdf"))
 
     fig,ax=plt.subplots(1,1)
-    ax.plot(stitching_df2["col"],stitching_df2["pos_x"]-stitching_df2["X"],".",label="x")
-    ax.plot(stitching_df2["row"],stitching_df2["pos_y"]-stitching_df2["Y"],".",label="y")
+    ax.plot(stitching_df2["col"],stitching_df2["x_pos2"]-stitching_df2["X"],".",label="x")
+    ax.plot(stitching_df2["row"],stitching_df2["y_pos2"]-stitching_df2["Y"],".",label="y")
     ax.set_xlabel("series")
     ax.set_ylabel("deviation per row and col (px)")
     ax.legend()
@@ -102,9 +102,10 @@ def process_stitching(output_dir,
                       rescaled_image_key,
                       f"S{row['S_index']:03d}_{row['row_col_label']}.zarr")
         stitching_df2["input_zarr_path"]=stitching_df2.apply(to_input_zarr_path,axis=1)
+
         input_zarr_shape=None
         for input_zarr_path in stitching_df2["input_zarr_path"]:
-            print(input_zarr_path)
+#            print(input_zarr_path)
             input_zarr=zarr.open(input_zarr_path,mode="r")
             if input_zarr_shape is None:
                 input_zarr_shape=input_zarr.shape
@@ -117,8 +118,8 @@ def process_stitching(output_dir,
             sizeT,
             sizeC,
             sizeZ,
-            stitching_df2["pos_y"].max()+sizeY,
-            stitching_df2["pos_x"].max()+sizeX
+            stitching_df2["y_pos2"].max()+sizeY,
+            stitching_df2["x_pos2"].max()+sizeX
         )
 
         output_zarr_path=path.join(output_dir,
@@ -136,8 +137,8 @@ def process_stitching(output_dir,
             for i, row in tqdm(grp.iterrows(),total=len(grp)):
                 input_zarr_path=row["input_zarr_path"]
                 input_zarr=zarr.open(input_zarr_path,mode="r")
-                x2=int(row["pos_x"])
-                y2=int(row["pos_y"])
+                x2=int(row["x_pos2"])
+                y2=int(row["y_pos2"])
                 window=(slice(y2,y2+sizeY),slice(x2,x2+sizeX))
                 image=np.array(input_zarr[t,:,:,:,:])
                 stitched_image[:,:,window[0],window[1]]=image
