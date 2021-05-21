@@ -5,7 +5,7 @@ A [Snakemake](https://snakemake.readthedocs.io) workflow for shadow correction a
 ## Requirements
 - conda and mamba
 - snakemake
-For installation, see [this](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html).
+For installation, follow [this instruction](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html).
 
 ## Usage
 1. clone the repository 
