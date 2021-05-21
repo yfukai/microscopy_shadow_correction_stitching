@@ -1,3 +1,0 @@
-KeyError in line 6 of /mnt/showers/AxioObserver7/ImageData/Fukai/image_analysis/scripts/shadow_correction_stitching/workflow/Snakefile:
-'output_directory'
-  File "/mnt/showers/AxioObserver7/ImageData/Fukai/image_analysis/scripts/shadow_correction_stitching/workflow/Snakefile", line 6, in <module>
