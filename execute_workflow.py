@@ -8,10 +8,11 @@ import shutil
 import yaml
 SCRIPT_PATH=path.abspath(__file__)
 
-def main(working_directory,
+def main(n_cores,
+         working_directory,
          output_directory,
-         camera_dark_image_path,
-         n_cores,extra_args=""):
+         camera_dark_image_path=False,
+         extra_args=""):
     os.chdir(path.dirname(SCRIPT_PATH))
     working_directory=path.abspath(working_directory)
     output_directory=path.abspath(output_directory)

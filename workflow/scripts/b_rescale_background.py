@@ -85,36 +85,41 @@ def rescale_background(output_dir,
 
     ############## Get corresponding camera dark image ################
 
-    if path.isfile(camera_dark_path):
-        camera_dark_img=io.imread(camera_dark_path)
-    elif path.isdir(camera_dark_path):
-        candidate_files=[]
-        propss=[]
-        exposures=[]
-        path_pattern=path.join(camera_dark_path,f"mean_camera_{camera_props['camera']}*.tiff")
-        print(path_pattern)
-        image_files=glob(path_pattern)
-        assert len(image_files) > 0
-        for f in image_files:
-            print(f)
-            with open(f.replace(".tiff",".yaml")) as f2:
-                props=yaml.safe_load(f2)
-            if all([np.array_equal(props[k], camera_props[k]) for k in match_keys]):
-                candidate_files.append(f)
-                propss.append(props)
-                exposures.append(props["exposure"])
-        dark_image_file = candidate_files[np.argmax(exposures)]
-        props=propss[np.argmax(exposures)]
-        del props["meta"]
-        params_dict.update({
-            "camera_dark_image_file": path.abspath(dark_image_file),
-            "camera_dark_image_props": props,
-        })
-        print(dark_image_file)
-        camera_dark_img=io.imread(dark_image_file)
-    else :
-        raise RuntimeError("corresponding dark image must exist")
-    camera_dark_img=camera_dark_img[boundary[1],boundary[0]]
+    if camera_dark_path:
+        if path.isfile(camera_dark_path):
+            camera_dark_img=io.imread(camera_dark_path)
+        elif path.isdir(camera_dark_path):
+            candidate_files=[]
+            propss=[]
+            exposures=[]
+            path_pattern=path.join(camera_dark_path,f"mean_camera_{camera_props['camera']}*.tiff")
+            print(path_pattern)
+            image_files=glob(path_pattern)
+            assert len(image_files) > 0
+            for f in image_files:
+                print(f)
+                with open(f.replace(".tiff",".yaml")) as f2:
+                    props=yaml.safe_load(f2)
+                if all([np.array_equal(props[k], camera_props[k]) for k in match_keys]):
+                    candidate_files.append(f)
+                    propss.append(props)
+                    exposures.append(props["exposure"])
+            dark_image_file = candidate_files[np.argmax(exposures)]
+            props=propss[np.argmax(exposures)]
+            del props["meta"]
+            params_dict.update({
+                "camera_dark_image_file": path.abspath(dark_image_file),
+                "camera_dark_image_props": props,
+            })
+            print(dark_image_file)
+            camera_dark_img=io.imread(dark_image_file)
+        else :
+            raise RuntimeError("corresponding dark image must exist")
+       
+        camera_dark_img=camera_dark_img[boundary[1],boundary[0]]
+    else:
+        camera_dark_img=np.zeros((boundary[1].stop-boundary[1].start,
+                                  boundary[0].stop-boundary[0].start))
     
     io.imsave(path.join(output_dir,"camera_dark_image.tiff"),camera_dark_img)
 
