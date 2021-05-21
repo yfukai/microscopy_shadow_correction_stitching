@@ -17,16 +17,6 @@ rule all:
 #    expand("{czi_file}_analyzed/.calculate_stitching.done", czi_file=czi_files)
     expand("{czi_file}_analyzed/.process_stitching.done", czi_file=czi_files)
 
-#rule d2_summraize_stitching:
-#  input:
-#    output_dir_created = expand("{czi_file}_analyzed/.calculate_stitching.done", czi_file=czi_files)
-#  output:
-#    "TileConfiguration.txt"
-#  threads:
-#    1
-#  script:
-#    scripts/d2_summarize_stitching.py
-
 rule e_process_stitching:
   input:
     output_dir_created = "{czi_file}_analyzed/.calculate_stitching.done"
@@ -34,6 +24,8 @@ rule e_process_stitching:
     touch("{czi_file}_analyzed/.process_stitching.done"),
   threads:
     1
+  conda:
+    "envs/conda_env.yaml"
   script:
     "scripts/e_process_stitching.py"
     
@@ -42,9 +34,10 @@ rule d_calculate_stitching:
     output_dir_created = "{czi_file}_analyzed/.rescale_images.done"
   output:
     touch("{czi_file}_analyzed/.calculate_stitching.done"),
-#    "{czi_file}_analyzed/stitching_result_sumamrized.csv"
   threads:
-    min(workflow.cores,5)
+    1
+  conda:
+    "envs/conda_env.yaml"
   script:
     "scripts/d_stitch_images.py"
  
@@ -56,6 +49,8 @@ rule c_rescale_images:
     touch("{czi_file}_analyzed/.rescale_images.done")
   threads:
     1
+  conda:
+    "envs/conda_env.yaml"
   script:
     "scripts/c_rescale_images.py"
  
@@ -66,6 +61,8 @@ rule b_rescale_background:
     touch("{czi_file}_analyzed/.rescale_background.done")
   threads:
     1
+  conda:
+    "envs/conda_env.yaml"
   script:
     "scripts/b_rescale_background.py"
  
@@ -77,6 +74,8 @@ rule a_calculate_background:
     touch("{czi_file}_analyzed/.calculate_background.done")
   threads:
     workflow.cores
+  conda:
+    "envs/conda_env.yaml"
   script:
     "scripts/a_calculate_background.py"
     
@@ -89,6 +88,5 @@ rule create_output_directories:
     output1=output[0].replace(".created","")
     output2=path.join(output_directory,output1)
     output3=path.dirname(output1)
-#    print(output[0],output1,output2)
     shell("sync && mkdir -p {output2} && ln -sf {output2} {output3} && touch {output[0]}")
   

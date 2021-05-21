@@ -14,7 +14,6 @@ import zarr
 import yaml
 
 def main(output_dir,
-         show_result=False,
          only_first_timepoint=False,
          stitching_channels=("Phase",),
          stitching_mode="divide",
@@ -48,7 +47,10 @@ def main(output_dir,
         c_index=c_indices[0]
         selected_planes_df=planes_df[planes_df["C_index"]==c_index]
 
-        for (t,z),grp in tqdm(list(selected_planes_df.groupby(["T_index","Z_index"]))):
+        indices_groups=list(selected_planes_df.groupby(["T_index","Z_index"]))
+        if only_first_timepoint:
+            indices_groups=[indices_groups[0]]
+        for (t,z),grp in tqdm(indices_groups):
             images=[]
             rows=[]
             cols=[]
