@@ -14,19 +14,6 @@ from tqdm import tqdm
 from dask import bag as db
 from dask.diagnostics import ProgressBar
 
-#def row_to_indices(dimension_order,**pos):
-#    nonspecified_keys=[k for k in dimension_order if not k in pos.keys()]
-#    indices=tuple([int(pos[k]) if k in pos.keys() else slice(None)
-#                  for k in dimension_order])
-#    return indices,nonspecified_keys
-#
-#def get_channel_ind(c_name,channels):
-#    ind=[j for j,c in enumerate(channels) if c_name in str(c)]
-#    if not len(ind)==1:
-#        print(c_name,channels)
-#        raise AssertionError()
-#    return ind[0]
-
 def process_stitching(output_dir,
                       stitching_csv_path=None,
                       fix_stitching_outlier=True,
@@ -56,10 +43,7 @@ def process_stitching(output_dir,
     stitching_df2["y_pos"]=stitching_df2["y_pos"]-shift_y
     stitching_df2["x_pos2"]=stitching_df2["y_pos"]
     stitching_df2["y_pos2"]=stitching_df2["x_pos"]
-#    return stitching_df2
-
-#    if fix_stitching_outlier:
-#        
+        
 
     fig,axes=plt.subplots(1,2,figsize=(10,5))
     im=axes[0].scatter(stitching_df2["x_pos2"],
@@ -105,13 +89,11 @@ def process_stitching(output_dir,
 
         input_zarr_shape=None
         for input_zarr_path in stitching_df2["input_zarr_path"]:
-#            print(input_zarr_path)
             input_zarr=zarr.open(input_zarr_path,mode="r")
             if input_zarr_shape is None:
                 input_zarr_shape=input_zarr.shape
             else:
                 assert np.array_equal(input_zarr_shape,input_zarr.shape)
-#        print(input_zarr_shape)
         sizeT,sizeC,sizeZ,sizeY,sizeX=input_zarr_shape
 
         stitched_image_size=(
@@ -144,19 +126,12 @@ def process_stitching(output_dir,
                 stitched_image[:,:,window[0],window[1]]=image
             output_zarr[t,:,:,:,:]=stitched_image
         for args in stitching_df2.groupby("T_index"):
-#            print(args)
             execute_stitching_for_single_plane(args)
 
     print(params_dict)
     params_path=path.join(output_dir,"process_stitching_params.yaml")
     with open(params_path,"w") as f:
         yaml.dump(params_dict,f)           
-
-
-#    with ProgressBar(): 
-#        db.from_sequence(t_z_indices)\
-#          .map(execute_stitching_for_single_plane)\
-#          .compute(num_workers=20)
 
 if __name__ == "__main__":
     try:
