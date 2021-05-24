@@ -7,6 +7,10 @@ from os import path
 import shutil
 import yaml
 SCRIPT_PATH=path.abspath(__file__)
+HOME_PATH = path.expanduser("~")
+CACHE_PATH = path.join(HOME_PATH,".shadow_correction_stitching_cache")
+os.makedirs(CACHE_PATH,exist_ok=True)
+os.environ["SNAKEMAKE_OUTPUT_CACHE"]=CACHE_PATH
 
 def main(n_cores,
          working_directory,
