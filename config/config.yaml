@@ -1,7 +1,7 @@
 stitching_only_first_timepoint: False
 camera_dark_path: False
 a_calculate_background:
-  check_validity_channel: False 
+  check_validity_channel: "Phase" 
   # if a channel name is provided, check whether the image is valid to estimate the background using that channel
   th_factor: 3.
   # the valid range of intensity is calculated by (the most frequent mean) +- (the most frequent stdev) * th_factor
