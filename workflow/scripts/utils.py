@@ -97,3 +97,8 @@ def parse_stitching_result(filename):
         stitching_result_df[k]=stitching_result_df[k].astype(np.float64)
     return stitching_result_df
 
+def wrap_list(x):
+    if isinstance(x, list):
+        return x
+    else:
+        return [x]

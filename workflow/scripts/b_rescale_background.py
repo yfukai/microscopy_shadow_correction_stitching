@@ -2,8 +2,6 @@
 """
 rescale_background.py
 select and subtract the camera fixed background from the estimated background
-prerequisites:  
-- 8_averaged_background.hdf5 exists for each image inoutput_diranalyzed_dir
 
 """
 
@@ -28,16 +26,7 @@ from skimage.morphology import disk
 warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
 
-import pycziutils # pylint: disable=import-error
-
-#script_path=path.dirname(os.path.realpath(__file__))
-#camera_dark_directory = path.abspath(
-#    path.join(script_path, "../../../camera-dark/analyzed/"))
-#microscope_dict = {
-#    'HDCamC13440-20CU': "AxioObserver",
-#    'Axiocam503m': "LSM800"
-#}
-
+import pycziutils 
 
 def get_camera_props(meta):
     meta_dict = xmltodict.parse(meta)
@@ -76,6 +65,8 @@ def rescale_background(output_dir,
     with open(metadata_xml_name, "r") as f:
         meta = "".join(f.readlines())
 
+    channels = pycziutils.parse_channels(meta)
+    detector_ids = [c["DetectorSettings"]["@ID"] for c in channels]
     camera_props=get_camera_props(meta)
     #id_keys=["camera","binning_str","bit_depth","exposure","LUT"]
     boundary = pycziutils.parse_camera_roi_slice(meta)
@@ -118,7 +109,8 @@ def rescale_background(output_dir,
        
         camera_dark_img=camera_dark_img[boundary[1],boundary[0]]
     else:
-        camera_dark_img=np.zeros((boundary[1].stop-boundary[1].start,
+        camera_dark_img=np.zeros((len(channels),
+                                  boundary[1].stop-boundary[1].start,
                                   boundary[0].stop-boundary[0].start))
     
     io.imsave(path.join(output_dir,"camera_dark_image.tiff"),camera_dark_img)
