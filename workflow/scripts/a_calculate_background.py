@@ -275,9 +275,12 @@ def calculate_background(filename,
     #t.c.z.y.x
     median_images=np.empty((sizeT,sizeC,sizeZ,sizeY,sizeX))
     mean_images=np.empty((sizeT,sizeC,sizeZ,sizeY,sizeX))
-    assert np.array_equal(valid_planes_df["T_index"].unique(),np.arange(sizeT))
-    assert np.array_equal(valid_planes_df["C_index"].unique(),np.arange(sizeC))
-    assert np.array_equal(valid_planes_df["Z_index"].unique(),np.arange(sizeZ))
+    median_images[...]=np.nan
+    mean_images[...]=np.nan
+    print(sizeT)
+#    assert np.array_equal(valid_planes_df["T_index"].unique(),np.arange(sizeT))
+#    assert np.array_equal(valid_planes_df["C_index"].unique(),np.arange(sizeC))
+#    assert np.array_equal(valid_planes_df["Z_index"].unique(),np.arange(sizeZ))
 
     for (iC, iT, iZ), grp in \
             tqdm(valid_planes_df.groupby(["C_index", "T_index", "Z_index"])):
@@ -333,7 +336,7 @@ def calculate_background(filename,
         c_name = channel_names[iC]
         for img_key,img in zip(["median","mean"],[median_images,mean_images]):
             filename=f"{img_key}_C{iC}_{c_name}_Z{iZ}"
-            averaged_img = np.mean(img[:,iC,iZ], axis=0)
+            averaged_img = np.nanmean(img[:,iC,iZ], axis=0)
             
             fig, ax = plt.subplots(1, 1, figsize=(5, 5))
             p = ax.imshow(averaged_img)

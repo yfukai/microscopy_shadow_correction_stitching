@@ -41,6 +41,7 @@ def main(output_dir,
         meta = "".join(f.readlines())
     channels=pycziutils.parse_channels(meta)
  
+    planes_df["tile_full"]=True
     for c_name in stitching_channels:
         c_indices=[j for j,c in enumerate(channels) if c_name in c["@Fluor"]]
         assert len(c_indices)==1
@@ -50,7 +51,11 @@ def main(output_dir,
         indices_groups=list(selected_planes_df.groupby(["T_index","Z_index"]))
         if only_first_timepoint:
             indices_groups=[indices_groups[0]]
+        full_tile_size=len(indices_groups[0][1])
         for (t,z),grp in tqdm(indices_groups):
+            if len(grp) < full_tile_size:
+                planes_df.loc[planes_df["T_index"]==t,"tile_full"]=False
+                continue # only stitch full tiles
             images=[]
             rows=[]
             cols=[]
@@ -62,6 +67,7 @@ def main(output_dir,
                 images.append(img)
                 rows.append(row["X_index"])
                 cols.append(row["Y_index"])
+
             grid,props_dict=stitching.stitch_images(images,rows,cols)
             props_dicts[(c_index,t,z)]=props_dict
             grid["c_name"]=c_name
@@ -69,6 +75,8 @@ def main(output_dir,
             grid["T_index"]=t
             grid["Z_index"]=z
             stitching_df=stitching_df.append(grid)
+
+    # interpolate stitching results from full grids
 
     props_path=path.join(stitching_log_directory,"stitching_result_props.yaml")
     with open(props_path,"w") as f:
@@ -87,6 +95,8 @@ def main(output_dir,
     stitching_df2["row"]=stitching_df2["row"].astype(np.int32)
     stitching_df2["col"]=stitching_df2["col"].astype(np.int32)
     stitching_df2.to_csv(path.join(output_dir,"stitching_result_sumamrized.csv"))
+
+    planes_df.to_csv(path.join(output_dir,"planes_df3.csv"))
 
     print(params_dict)
     params_path=path.join(output_dir,"stitching_params.yaml")

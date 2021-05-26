@@ -17,6 +17,7 @@ from dask.diagnostics import ProgressBar
 def process_stitching(output_dir,
                       stitching_csv_path=None,
                       fix_stitching_outlier=True,
+                      export_only_full_tile=True,
                       rescale_methods=["divide"]):
     
     if stitching_csv_path is None:
@@ -27,7 +28,7 @@ def process_stitching(output_dir,
 
     params_dict=locals()
 
-    planes_df=pd.read_csv(path.join(output_dir,"planes_df2.csv"))
+    planes_df=pd.read_csv(path.join(output_dir,"planes_df3.csv"))
     stitching_df=pd.read_csv(stitching_csv_path,index_col=0)
 
     stitching_df2=pd.merge(stitching_df,planes_df,
@@ -95,6 +96,10 @@ def process_stitching(output_dir,
             else:
                 assert np.array_equal(input_zarr_shape,input_zarr.shape)
         sizeT,sizeC,sizeZ,sizeY,sizeX=input_zarr_shape
+        if export_only_full_tile:
+            T_indices=planes_df[planes_df["tile_full"]]["T_index"].unique()
+            sizeT=len(T_indices)
+            assert np.array_equal(np.arange(sizeT),np.sort(T_indices))
 
         stitched_image_size=(
             sizeT,
@@ -125,7 +130,13 @@ def process_stitching(output_dir,
                 image=np.array(input_zarr[t,:,:,:,:])
                 stitched_image[:,:,window[0],window[1]]=image
             output_zarr[t,:,:,:,:]=stitched_image
-        for args in stitching_df2.groupby("T_index"):
+
+        if export_only_full_tile:
+            df=stitching_df2[stitching_df2["tile_full"]]
+        else:
+            df=stitching_df2
+
+        for args in df.groupby("T_index"):
             execute_stitching_for_single_plane(args)
 
     print(params_dict)

@@ -154,9 +154,9 @@ def rescale_images(filename,
                 background=backgroundss[(c,z)]
                 img=reader.read(c=c,t=t,z=z,series=s,rescale=False)
                 if mode=="divide":
-                    img=(img-camera_dark_img)/background
+                    img=(img-camera_dark_img[c])/background
                 elif mode=="subtract":
-                    img=img-camera_dark_img-background
+                    img=img-camera_dark_img[c]-background
                 if c in nonuniform_background_subtract_c_indices:
                     img_small=transform.rescale(img,nonuniform_background_shrink_factor,preserve_range=True,)
                     img_small_bg=filters.median(img_small,disk(nonuniform_background_median_disk_size))
