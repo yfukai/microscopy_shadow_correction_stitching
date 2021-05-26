@@ -30,9 +30,9 @@ execute_workflow.py N_CORES WORKING_DIRECTORY OUTPUT_DIRECTORY CAMERA_DARK_IMAGE
 - WORKING_DIRECTORY ... the directory containing CZI files (can be nested)
 - OUTPUT_DIRECTORY ... the directory to output the results (/path/to/output/directory in this case)
 - CAMERA_DARK_IMAGE_PATH (optional) ... the path for the dark background image of the camera. Can be either of :
-  - path to a image file, read by `skimage.io.imread`
+  - path to a image file, read by `skimage.io.imread`. The shape should be ((channel count), (Y size of the image, (X size of the image))
   - path to a directory, with files `a.tiff`, `a.yaml`, `b.tiff`, `b.yaml` ... (the file names can be arbitrary).
-    In this case, The YAML files must have keys `"LUT"`, `"binning"`, and `"bit_depth"`. 
+    In this case, The YAML files must have keys specified `b_rescale_background.match_keys` (default: `"LUT"`, `"binning"`, and `"bit_depth"`). 
     The TIFF file is used if the accompanying YAML file has the same properties as the input CZI file.
   - if not provided, an image filled with zero is used as the background.
 
