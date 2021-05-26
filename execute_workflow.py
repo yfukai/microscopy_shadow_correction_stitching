@@ -15,6 +15,7 @@ os.environ["SNAKEMAKE_OUTPUT_CACHE"]=CACHE_PATH
 def main(n_cores,
          working_directory,
          output_directory,
+         config_path="config/config.yaml",
          camera_dark_image_path=False,
          extra_args=""):
     os.chdir(path.dirname(SCRIPT_PATH))
@@ -23,7 +24,7 @@ def main(n_cores,
     command = f"snakemake -j{n_cores} -d \"{working_directory}\" " + \
               f"--config output_directory=\"{output_directory}\" " + \
                        f" camera_dark_path=\"{camera_dark_image_path}\" " + \
-              f"-k --restart-times 5 --configfile config/config.yaml --use-conda --cache {extra_args}"
+              f"-k --restart-times 5 --configfile {config_path} --use-conda --cache {extra_args}"
     shutil.copy(path.join(path.dirname(SCRIPT_PATH),"config","config.yaml"),
                 path.join(output_directory,"shadow_correction_stitching_snakemake_config.yaml"))
     git_description = check_output(["git", "describe","--always"]).strip()

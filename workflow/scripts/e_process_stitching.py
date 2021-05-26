@@ -16,7 +16,7 @@ from dask.diagnostics import ProgressBar
 
 def process_stitching(output_dir,
                       stitching_csv_path=None,
-                      fix_stitching_outlier=True,
+                      *,
                       export_only_full_tile=True,
                       rescale_methods=["divide"]):
     
@@ -146,6 +146,8 @@ def process_stitching(output_dir,
 
 if __name__ == "__main__":
     try:
-        process_stitching(path.dirname(snakemake.input["output_dir_created"]))
+        process_stitching(path.dirname(snakemake.input["output_dir_created"]),
+                          **snakemake.config["e_process_stitching"],
+                          )
     except NameError:
         fire.Fire(process_stitching)

@@ -14,6 +14,7 @@ import zarr
 import yaml
 
 def main(output_dir,
+         *,
          only_first_timepoint=False,
          stitching_channels=("Phase",),
          stitching_mode="divide",
@@ -107,7 +108,7 @@ def main(output_dir,
 if __name__ == "__main__":
     try:
         main(path.dirname(snakemake.input["output_dir_created"]),
-                          only_first_timepoint=snakemake.config["stitching_only_first_timepoint"],
+                          **snakemake.config["d_stitch_images"],
                           n_procs=snakemake.threads)
     except NameError:
         fire.Fire(main)

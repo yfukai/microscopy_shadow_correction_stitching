@@ -27,34 +27,38 @@ import pycziutils
 
 @pycziutils.with_javabridge
 def rescale_images(filename,
-                         output_dir,
-                         background_method="median",
-                         background_smoothing=True,
-                         nonuniform_background_subtract_channels=("Phase",),
-                         nonuniform_background_shrink_factor=0.05,
-                         nonuniform_background_median_disk_size=5,
-                         image_export_channels=("Phase",),
-                         image_export_mode_index=0,
-                         modes=("divide","subtract")):
+                   output_dir,
+                   *,
+                   background_method="median",
+                   background_smoothing=True,
+                   nonuniform_background_subtract_channels=[],#("Phase",),
+                   nonuniform_background_shrink_factor=0.05,
+                   nonuniform_background_median_disk_size=5,
+                   modes=("divide","subtract")):
     if isinstance(modes,str):
         modes=[modes]
     assert all([m in ["divide","subtract","none"] for m in modes])
     assert image_export_mode_index < len(modes)
 
-    averaged_background_yaml=path.join(output_dir,
-                                       "averaged_background",
-                                       "calculate_background_params.yaml")
+    image_props_path=path.join(output_dir,"image_props.yaml")
     bg_directory = path.join(output_dir, "rescaled_background")
     metadata_xml_name = path.join(output_dir, "metadata.xml")
     planes_df_csv_name = path.join(output_dir, "planes_df.csv")
 #    print(planes_df_csv_name)
-    assert path.isfile(averaged_background_yaml)
+    assert path.isfile(image_props_path)
     assert path.isdir(bg_directory)
     assert path.isfile(metadata_xml_name)
     assert path.isfile(planes_df_csv_name)
 
-    with open(averaged_background_yaml,"r") as f:
-        channel_names=yaml.safe_load(f)["channel_names"]
+    with open(image_props_path,"r") as f:
+        image_props=yaml.safe_load(f)
+        channel_names=image_props["channel_names"]
+        sizeS=image_props["sizeS"]
+        sizeT=image_props["sizeT"]
+        sizeC=image_props["sizeC"]
+        sizeZ=image_props["sizeZ"]
+        sizeY=image_props["sizeY"]
+        sizeX=image_props["sizeX"]
 
     image_directory = path.join(output_dir, "rescaled_images")
 
@@ -91,14 +95,14 @@ def rescale_images(filename,
     planes_df["Y_pixel"]=planes_df["Y"]/px_sizes[1]
 
     reader=pycziutils.get_tiled_reader(filename)
-    sizeS,sizeT,sizeC,sizeX,sizeY,sizeZ=pycziutils.summarize_image_size(reader)
+#    sizeS,sizeT,sizeC,sizeX,sizeY,sizeZ=pycziutils.summarize_image_size(reader)
     assert all(planes_df["image"].unique()==np.arange(sizeS))
     assert all(planes_df["T_index"].unique()==np.arange(sizeT))
     assert all(planes_df["C_index"].unique()==np.arange(sizeC))
     assert all(planes_df["Z_index"].unique()==np.arange(sizeZ))
 
     ############## Get corresponding camera dark image ################
-    camera_dark_img=imread(path.join(output_dir,"camera_dark_image.tiff"))
+    camera_dark_img=np.load(path.join(output_dir,"camera_dark_image.npy"))
 
     background_key=f"{'smoothed' if background_smoothing else 'rescaled'}_"+\
                    f"{background_method}"
@@ -153,6 +157,9 @@ def rescale_images(filename,
                 c,t,z=int(row["C_index"]),int(row["T_index"]),int(row["Z_index"])
                 background=backgroundss[(c,z)]
                 img=reader.read(c=c,t=t,z=z,series=s,rescale=False)
+#                print(img.shape)
+#                print(camera_dark_img.shape)
+#                print(background.shape)
                 if mode=="divide":
                     img=(img-camera_dark_img[c])/background
                 elif mode=="subtract":
@@ -178,6 +185,8 @@ def rescale_images(filename,
 if __name__ == "__main__":
     try:
         rescale_images(snakemake.input["filename"],
-                       path.dirname(snakemake.input["output_dir_created"]))
+                       path.dirname(snakemake.input["output_dir_created"]),
+                       **snakemake.config["c_rescale_images"])
+
     except NameError:
         fire.Fire(rescale_images)

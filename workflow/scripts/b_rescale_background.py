@@ -17,6 +17,7 @@ import pandas as pd
 import xmltodict
 import h5py
 import yaml
+import itertools
 
 from matplotlib import pyplot as plt
 from skimage import filters, io
@@ -50,8 +51,10 @@ def get_camera_props(meta,channel,
 
     if acq_mode == "WideField":
         prop_dict={k:match_keys_ops[k](meta) for k in wf_match_keys}
+        boundary = pycziutils.parse_camera_roi_slice(meta)
     elif acq_mode == "LaserScanningConfocalMicroscopy":
         prop_dict={k:match_keys_ops[k](meta) for k in cf_match_keys}
+        boundary = (slice(None),slice(None))
     else:
         raise RuntimeError(f"Acquisition mode {acq_mode} not supported")
     
@@ -59,30 +62,29 @@ def get_camera_props(meta,channel,
         prop_dict["camera"]=detector["@Model"]
     else:
         prop_dict["camera"]=detector["@ID"]
-    return prop_dict
+    return prop_dict,boundary
 
 
 def rescale_background(output_dir,
                        camera_dark_path,
+                       *,
                        match_keys=["LUT","binning","bit_depth"],
                        smoothing="gaussian",
-                       sigma=10,
-                       camera_dark_average_method="mean"):
-    assert camera_dark_average_method in ["mean","median"]
+                       sigma=10):
 
     log_dir=path.join(output_dir,"rescale_background_log")
     os.makedirs(log_dir,exist_ok=True)
     rescaled_bg_directory = path.join(output_dir, "rescaled_background")
     os.makedirs(rescaled_bg_directory,exist_ok=True)
-    averaged_background_yaml=path.join(output_dir,
-                                       "averaged_background",
-                                       "calculate_background_params.yaml")
 
     bg_directory = path.join(output_dir, "averaged_background")
     metadata_xml_name = path.join(output_dir, "metadata.xml")
-    assert path.isfile(averaged_background_yaml)
+    planes_df_csv_name = path.join(output_dir, "planes_df.csv")
+    image_props_path=path.join(output_dir,"image_props.yaml")
     assert path.isdir(bg_directory)
     assert path.isfile(metadata_xml_name)
+    assert path.isfile(planes_df_csv_name)
+    assert path.isfile(image_props_path)
     params_dict = locals()
     def savefig(fig, name):
         fig.savefig(path.join(log_dir, name), bbox_inches="tight")
@@ -90,15 +92,23 @@ def rescale_background(output_dir,
     ############## Load files ################
     with open(metadata_xml_name, "r") as f:
         meta = "".join(f.readlines())
-    with open(averaged_background_yaml,"r") as f:
-        channel_names=yaml.safe_load(f)["channel_names"]
+    with open(image_props_path,"r") as f:
+        image_props=yaml.safe_load(f)
+        channel_names=image_props["channel_names"]
+        sizeS=image_props["sizeS"]
+        sizeT=image_props["sizeT"]
+        sizeC=image_props["sizeC"]
+        sizeZ=image_props["sizeZ"]
+        sizeY=image_props["sizeY"]
+        sizeX=image_props["sizeX"]
+
+    planes_df=pd.read_csv(planes_df_csv_name)
 
     channels = pycziutils.parse_channels(meta)
     camera_propss=[get_camera_props(meta,channel,wf_match_keys=match_keys) for channel in channels]
     #id_keys=["camera","binning_str","bit_depth","exposure","LUT"]
-    boundary = pycziutils.parse_camera_roi_slice(meta)
-    params_dict.update(camera_propss)
-    params_dict.update({"boundary" : [[b.start,b.stop] for b in boundary]})
+    params_dict.update({"camera_propss":[p[0] for p in camera_propss]})
+    params_dict.update({"boundary" : [[[b.start,b.stop] for b in p[1]] for p in camera_propss]})
     print(params_dict)
 
     ############## Get corresponding camera dark image ################
@@ -108,7 +118,7 @@ def rescale_background(output_dir,
             camera_dark_img=io.imread(camera_dark_path)
         elif path.isdir(camera_dark_path):
             camera_dark_img=[]
-            for channel,camera_props in zip(channels,camera_propss):
+            for channel,(camera_props,boundary) in zip(channels,camera_propss):
                 candidate_files=[]
                 propss=[]
                 exposures=[]
@@ -120,7 +130,8 @@ def rescale_background(output_dir,
                     print(f)
                     with open(f.replace(".tiff",".yaml")) as f2:
                         props=yaml.safe_load(f2)
-                    if all([np.array_equal(props[k], camera_props[k]) for k in camera_props.keys()]):
+                    if all([np.array_equal(props[k], camera_props[k]) 
+                            for k in camera_props.keys()]):
                         candidate_files.append(f)
                         propss.append(props)
                         exposures.append(props["exposure"])
@@ -132,21 +143,25 @@ def rescale_background(output_dir,
                     "camera_dark_image_props": props,
                 })
                 print(dark_image_file)
-                camera_dark_img.append(io.imread(dark_image_file))
-            camera_dark_img=np.array(camera_dark_img)
+                img=io.imread(dark_image_file)
+                camera_dark_img.append(img[boundary[1],boundary[0]])
         else :
             raise RuntimeError("corresponding dark image must exist")
        
-        camera_dark_img=camera_dark_img[:,boundary[1],boundary[0]]
     else:
-        camera_dark_img=np.zeros((len(channels),
-                                  boundary[1].stop-boundary[1].start,
-                                  boundary[0].stop-boundary[0].start))
+        camera_dark_img=[]
+        for channel,(camera_props,boundary) in zip(channels,camera_propss):
+            def get_size(b,limit):
+                x0=b.start if b.start else 0
+                x1=b.stop if b.start else limit
+                return x1-x0
+            camera_dark_img.append(np.zeros((get_size(boundary[1],sizeY),
+                                             get_size(boundary[0],sizeX))))
+    camera_dark_img=np.array(camera_dark_img)
     
-    io.imsave(path.join(output_dir,"camera_dark_image.tiff"),camera_dark_img)
+    np.save(path.join(output_dir,"camera_dark_image.npy"),camera_dark_img)
 
     print(camera_dark_img.shape)
-    print(boundary)
     print(params_dict)
 
     ############## rescale background and save ##############
@@ -154,12 +169,14 @@ def rescale_background(output_dir,
         "gaussian":lambda im : filters.gaussian(im,sigma=sigma),
         "median":lambda im : filters.median(im,disk(sigma)),
     }
+
     for iC,iZ,img_key in itertools.product(range(sizeC),
                                            range(sizeZ),
                                            ["median","mean"]):
         c_name = channel_names[iC]
         filename=f"{img_key}_C{iC}_{c_name}_Z{iZ}"
-        bg_img= io.imread(path.join(bg_directory,filename+".tiff"))
+        image_path=path.join(bg_directory,filename+".tiff")
+        bg_img= io.imread(image_path)
  
         assert np.array_equal(bg_img.shape,camera_dark_img.shape[1:])
 
@@ -190,6 +207,10 @@ def rescale_background(output_dir,
 if __name__ == "__main__":
     try:
         rescale_background(path.dirname(snakemake.input["output_dir_created"]),
-                           snakemake.config["camera_dark_path"])
-    except NameError:
+                           snakemake.config["camera_dark_path"],
+                           **snakemake.config["b_rescale_background"]
+                           )
+    except NameError as e:
+        if "snakemake" in str(e):
+            raise e
         fire.Fire(rescale_background)

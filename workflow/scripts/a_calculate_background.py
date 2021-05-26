@@ -74,6 +74,7 @@ def threshold_image(row, reader, sigma, th_low, th_high):
 @with_ipcluster
 def calculate_background(filename,
                          output_dir,
+                         *,
                          check_validity_channel=False,
                          th_factor=3.,
                          above_threshold_pixel_ratio_max=0.05,
@@ -82,7 +83,6 @@ def calculate_background(filename,
                          intensity_bin_size=25,
                          thumbnail_size=20,
                          quantile=0.001,
-                         *,
                          ipcluster_nproc=1
                          ):
     params_dict = locals()
@@ -110,13 +110,16 @@ def calculate_background(filename,
         f.write(meta)
 
     reader = pycziutils.get_tiled_reader(filename)
-    _, sizeT, sizeC, sizeX, sizeY, sizeZ = pycziutils.summarize_image_size(reader)
+    sizeS, sizeT, sizeC, sizeX, sizeY, sizeZ = pycziutils.summarize_image_size(reader)
 
     pixel_sizes = pycziutils.parse_pixel_size(meta)
     assert pixel_sizes[1] == 'µm'
     channels = pycziutils.parse_channels(meta)
     channel_names = [c["@Fluor"] for c in channels]
     print(channel_names)
+    params_dict.update({
+        "channel_names": channel_names,
+    })
     if check_validity_channel:
         check_validity_channel_index = [
             j for j, c in enumerate(channels) if check_validity_channel in c["@Fluor"]
@@ -172,7 +175,6 @@ def calculate_background(filename,
         th_low = m - th_factor * s
         th_high = m + th_factor * s
         params_dict.update({
-            "channel_names": channel_names,
             "mean_mode": mean_mode,
             "stdev_mode": stdev_mode,
             "ph_th_low": float(th_low),
@@ -350,6 +352,20 @@ def calculate_background(filename,
     params_path=path.join(background_directory,"calculate_background_params.yaml")
     with open(params_path,"w") as f:
         yaml.dump(params_dict,f)
+
+    image_props={
+        "channel_names":channel_names,
+        "sizeS":sizeS,
+        "sizeT":sizeT,
+        "sizeC":sizeC,
+        "sizeZ":sizeZ,
+        "sizeY":sizeY,
+        "sizeX":sizeX,
+    }
+    image_props_path=path.join(output_dir,"image_props.yaml")
+    with open(image_props_path,"w") as f:
+        yaml.dump(image_props,f)
+    
 #        for k, v in params_dict.items():
 #            print(k,v)
 #            try:
