@@ -38,7 +38,6 @@ def rescale_images(filename,
     if isinstance(modes,str):
         modes=[modes]
     assert all([m in ["divide","subtract","none"] for m in modes])
-    assert image_export_mode_index < len(modes)
 
     image_props_path=path.join(output_dir,"image_props.yaml")
     bg_directory = path.join(output_dir, "rescaled_background")
@@ -187,6 +186,8 @@ if __name__ == "__main__":
         rescale_images(snakemake.input["filename"],
                        path.dirname(snakemake.input["output_dir_created"]),
                        **snakemake.config["c_rescale_images"])
-
-    except NameError:
+    except NameError as e:
+        raise e
+        if "snakemake" in str(e):
+            raise e
         fire.Fire(rescale_images)

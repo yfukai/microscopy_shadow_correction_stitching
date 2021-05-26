@@ -110,5 +110,7 @@ if __name__ == "__main__":
         main(path.dirname(snakemake.input["output_dir_created"]),
                           **snakemake.config["d_stitch_images"],
                           n_procs=snakemake.threads)
-    except NameError:
+    except NameError as e:
+        if "snakemake" in str(e):
+            raise e
         fire.Fire(main)

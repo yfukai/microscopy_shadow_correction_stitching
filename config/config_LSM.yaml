@@ -1,0 +1,43 @@
+stitching_only_first_timepoint: False
+camera_dark_path: False
+
+a_calculate_background:
+  #  check_validity_channel: "Phase" 
+  check_validity_channel: False
+  # if a channel name is provided, check whether the image is valid to estimate the background using that channel
+  th_factor: 3.
+  # the valid range of intensity is calculated by (the most frequent mean) +- (the most frequent stdev) * th_factor
+  above_threshold_pixel_ratio_max: 0.05
+  # the frames with more pixels than above_threshold_pixel_ratio_max * (total pixel count) is above the upper valid range is regarded invalid)
+  below_threshold_pixel_ratio_max: 0.05
+  # the frames with more pixels than below_threshold_pixel_ratio_max * (total pixel count) is below the lower valid range is regarded invalid)
+  valid_ratio_threshold: 0.4
+  # the stage position (series) with more time points than valid_ratio_threshold * (total frame count) is regarded invalid
+  intensity_bin_size: 25
+  # the bin count to estimate the most frequent stdev and mean
+  thumbnail_size: 20
+  # the size of thumbnail to output
+  quantile: 0.001
+  # the quantile threshold to calculate the background by mean averaging
+
+b_rescale_background:
+  match_keys: []
+  smoothing: "gaussian"
+  sigma: 10
+
+c_rescale_images:
+  background_method: "median"
+  background_smoothing: True
+  nonuniform_background_subtract_channels: []
+  nonuniform_background_shrink_factor: 0.05
+  nonuniform_background_median_disk_size: 5
+  modes: ["subtract"]
+
+d_stitch_images:
+  only_first_timepoint: False
+  stitching_channels: ["488"]
+  stitching_mode: "subtract"
+
+e_process_stitching: 
+  export_only_full_tile: True
+  rescale_methods: ["subtract"]

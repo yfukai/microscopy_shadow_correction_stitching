@@ -149,5 +149,7 @@ if __name__ == "__main__":
         process_stitching(path.dirname(snakemake.input["output_dir_created"]),
                           **snakemake.config["e_process_stitching"],
                           )
-    except NameError:
+    except NameError as e:
+        if "snakemake" in str(e):
+            raise e
         fire.Fire(process_stitching)

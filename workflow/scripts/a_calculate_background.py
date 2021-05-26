@@ -376,18 +376,11 @@ def calculate_background(filename,
 
 if __name__ == "__main__":
     try:
-        config=snakemake.config["a_calculate_background"]
-        print(config)
         calculate_background(snakemake.input["filename"],
                              snakemake.input["output_dir_created"].replace(".created",""),
-                             check_validity_channel=config["check_validity_channel"],
-                             th_factor=config["th_factor"],
-                             above_threshold_pixel_ratio_max=config["above_threshold_pixel_ratio_max"],
-                             below_threshold_pixel_ratio_max=config["below_threshold_pixel_ratio_max"],
-                             valid_ratio_threshold=config["valid_ratio_threshold"],
-                             intensity_bin_size=config["intensity_bin_size"],
-                             thumbnail_size=config["thumbnail_size"],
-                             quantile=config["quantile"],
+                             **snakemake.config["a_calculate_background"],
                              ipcluster_nproc=snakemake.threads)
-    except NameError:
+    except NameError as e:
+        if "snakemake" in str(e):
+            raise e
         fire.Fire(calculate_background)
