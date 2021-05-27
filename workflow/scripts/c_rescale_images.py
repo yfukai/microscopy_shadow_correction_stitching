@@ -41,23 +41,11 @@ def rescale_images(filename,
 
     image_props_path=path.join(output_dir,"image_props.yaml")
     bg_directory = path.join(output_dir, "rescaled_background")
-    metadata_xml_name = path.join(output_dir, "metadata.xml")
     planes_df_csv_name = path.join(output_dir, "planes_df.csv")
 #    print(planes_df_csv_name)
     assert path.isfile(image_props_path)
     assert path.isdir(bg_directory)
-    assert path.isfile(metadata_xml_name)
     assert path.isfile(planes_df_csv_name)
-
-    with open(image_props_path,"r") as f:
-        image_props=yaml.safe_load(f)
-        channel_names=image_props["channel_names"]
-        sizeS=image_props["sizeS"]
-        sizeT=image_props["sizeT"]
-        sizeC=image_props["sizeC"]
-        sizeZ=image_props["sizeZ"]
-        sizeY=image_props["sizeY"]
-        sizeX=image_props["sizeX"]
 
     image_directory = path.join(output_dir, "rescaled_images")
 
@@ -71,11 +59,19 @@ def rescale_images(filename,
         fig.savefig(path.join(log_dir, name), bbox_inches="tight")
  
     ############## read and process metadata ################
-    with open(metadata_xml_name, "r") as f:
-        meta = "".join(f.readlines())
-    channels=pycziutils.parse_channels(meta)
-    px_sizes=[float(s) for s in pycziutils.parse_pixel_size(meta)[::2]]
+    with open(image_props_path,"r") as f:
+        image_props=yaml.safe_load(f)
+    channel_names=image_props["channel_names"]
+    channels=image_props["channels"]
+    pixel_sizes=image_props["pixel_sizes"]
+    px_sizes=[float(s) for s in pixel_sizes[::2]]
     print(px_sizes)
+    sizeS=image_props["sizeS"]
+    sizeT=image_props["sizeT"]
+    sizeC=image_props["sizeC"]
+    sizeZ=image_props["sizeZ"]
+    sizeY=image_props["sizeY"]
+    sizeX=image_props["sizeX"]
 
     planes_df=pd.read_csv(planes_df_csv_name)
     Xs=np.sort(planes_df["X"].unique())

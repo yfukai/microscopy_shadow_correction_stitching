@@ -24,27 +24,30 @@ def main(output_dir,
 
     output_dir=path.abspath(output_dir)
     image_directory = path.join(output_dir, "rescaled_images")
-    metadata_xml_name = path.join(output_dir, "metadata.xml")
     image_key=f"rescaled_image_{stitching_mode}"
     image_directory2=path.join(image_directory,image_key)
+    image_props_path=path.join(output_dir,"image_props.yaml")
 
-    planes_df=pd.read_csv(path.join(output_dir,"planes_df2.csv"))
+    assert path.isdir(output_dir)
+    assert path.isdir(image_directory2)
+    assert path.isfile(image_props_path)
 
     stitching_log_directory=path.join(output_dir,"stitching_log")
     os.makedirs(stitching_log_directory,exist_ok=True)
 
     params_dict=locals()
 
+    planes_df=pd.read_csv(path.join(output_dir,"planes_df2.csv"))
+    with open(image_props_path,"r") as f:
+        image_props=yaml.safe_load(f)
+    channel_names=image_props["channel_names"]
+
     stitching_df=pd.DataFrame()
     props_dicts={}
 
-    with open(metadata_xml_name, "r") as f:
-        meta = "".join(f.readlines())
-    channels=pycziutils.parse_channels(meta)
- 
     planes_df["tile_full"]=True
     for c_name in stitching_channels:
-        c_indices=[j for j,c in enumerate(channels) if c_name in c["@Fluor"]]
+        c_indices=[j for j,c in enumerate(channel_names) if c_name in c]
         assert len(c_indices)==1
         c_index=c_indices[0]
         selected_planes_df=planes_df[planes_df["C_index"]==c_index]
@@ -82,7 +85,6 @@ def main(output_dir,
     props_path=path.join(stitching_log_directory,"stitching_result_props.yaml")
     with open(props_path,"w") as f:
         yaml.dump(props_dicts,f)           
-
 
 
     stitching_df.to_csv(path.join(output_dir,"stitching_result_raw.csv"))

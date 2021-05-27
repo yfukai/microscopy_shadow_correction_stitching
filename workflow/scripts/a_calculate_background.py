@@ -355,6 +355,8 @@ def calculate_background(filename,
 
     image_props={
         "channel_names":channel_names,
+        "channels" : channels,
+        "pixel_sizes" : pixel_sizes,
         "sizeS":sizeS,
         "sizeT":sizeT,
         "sizeC":sizeC,
