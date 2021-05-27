@@ -55,7 +55,6 @@ def rescale_images(
     os.makedirs(log_dir, exist_ok=True)
 
     params_dict = locals()
-    del params_dict["f"]
 
     def savefig(fig, name):
         fig.savefig(path.join(log_dir, name), bbox_inches="tight")
