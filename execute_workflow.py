@@ -37,7 +37,7 @@ def main(
     )
     shutil.copy(
         path.join(path.dirname(SCRIPT_PATH), config),
-        path.join(output_directory, SNAKEMAKE_CONFIG_NAMEa),
+        path.join(output_directory, SNAKEMAKE_CONFIG_NAME),
     )
     git_description = str(check_output(["git", "describe", "--always"]).strip())
     print(git_description)

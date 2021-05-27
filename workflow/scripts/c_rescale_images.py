@@ -64,7 +64,6 @@ def rescale_images(
     with open(image_props_path, "r") as f:
         image_props = yaml.safe_load(f)
     channel_names = image_props["channel_names"]
-    channels = image_props["channels"]
     pixel_sizes = image_props["pixel_sizes"]
     px_sizes = [float(s) for s in pixel_sizes[::2]]
     print(px_sizes)
@@ -136,7 +135,7 @@ def rescale_images(
     rescaled_image_pathss = []
 
     nonuniform_background_subtract_c_indices = [
-        [j for j, c in enumerate(channels) if c_name in c["@Fluor"]]
+        [j for j, c in enumerate(channel_names) if c_name in c]
         for c_name in nonuniform_background_subtract_channels
     ]
     assert all([len(js) == 1 for js in nonuniform_background_subtract_c_indices])
