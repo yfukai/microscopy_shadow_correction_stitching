@@ -24,7 +24,7 @@ vim config/config.yaml
 ```
 4. run the workflow
 ```bash
-execute_workflow.py N_CORES WORKING_DIRECTORY OUTPUT_DIRECTORY CAMERA_DARK_IMAGE_PATH 
+execute_workflow.py N_CORES WORKING_DIRECTORY OUTPUT_DIRECTORY CAMERA_DARK_IMAGE_PATH --config CONFIG_PATH
 ```
 - N_CORES ... the number of the cores to use
 - WORKING_DIRECTORY ... the directory containing CZI files (can be nested)
@@ -35,6 +35,7 @@ execute_workflow.py N_CORES WORKING_DIRECTORY OUTPUT_DIRECTORY CAMERA_DARK_IMAGE
     In this case, The YAML files must have keys specified `b_rescale_background.match_keys` (default: `"LUT"`, `"binning"`, and `"bit_depth"`). 
     The TIFF file is used if the accompanying YAML file has the same properties as the input CZI file.
   - if not provided, an image filled with zero is used as the background.
+- CONFIG_PATH (optional) ... the path for the configuration file
 
 5. for each "WORKING_DIRECTORY/aaa/bbb.czi", a directory named "OUTPUT_DIRECTORY/aaa/bbb_analyzed" is created.
    The final artifact is `stitched_image_divide.zarr` (or `stitched_image_subtract.zarr`) in that directory.
