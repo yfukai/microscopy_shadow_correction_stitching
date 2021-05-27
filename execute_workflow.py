@@ -37,11 +37,11 @@ def main(
     )
     shutil.copy(
         path.join(path.dirname(SCRIPT_PATH), config),
-        path.join(output_directory, CONFIG_NAME),
+        path.join(output_directory, SNAKEMAKE_CONFIG_NAMEa),
     )
     git_description = str(check_output(["git", "describe", "--always"]).strip())
     print(git_description)
-    with open(path.join(output_directory, SNAKEMAKE_CONFIG_NAME), "w") as f:
+    with open(path.join(output_directory, CONFIG_NAME), "w") as f:
         yaml.dump(
             {
                 "command": command,
