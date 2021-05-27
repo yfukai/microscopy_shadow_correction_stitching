@@ -10,8 +10,8 @@ import yaml
 SCRIPT_PATH = path.abspath(__file__)
 HOME_PATH = path.expanduser("~")
 CACHE_PATH = path.join(HOME_PATH, ".shadow_correction_stitching_cache")
-os.makedirs(CACHE_PATH, exist_ok=True)
-os.environ["SNAKEMAKE_OUTPUT_CACHE"] = CACHE_PATH
+CONFIG_NAME = "shadow_correction_stitching_run_config.yaml"
+SNAKEMAKE_CONFIG_NAME = "shadow_correction_stitching_snakemake_config.yaml"
 
 
 def main(
@@ -22,6 +22,9 @@ def main(
     config="config/config.yaml",
     extra_args="",
 ):
+    os.makedirs(CACHE_PATH, exist_ok=True)
+    os.environ["SNAKEMAKE_OUTPUT_CACHE"] = CACHE_PATH
+
     os.chdir(path.dirname(SCRIPT_PATH))
     working_directory = path.abspath(working_directory)
     output_directory = path.abspath(output_directory)
@@ -34,14 +37,11 @@ def main(
     )
     shutil.copy(
         path.join(path.dirname(SCRIPT_PATH), config),
-        path.join(
-            output_directory, "shadow_correction_stitching_snakemake_config.yaml"
-        ),
+        path.join(output_directory, CONFIG_NAME),
     )
-    git_description = check_output(["git", "describe", "--always"]).strip()
-    with open(
-        path.join(output_directory, "shadow_correction_stitching_config.yaml"), "w"
-    ) as f:
+    git_description = str(check_output(["git", "describe", "--always"]).strip())
+    print(git_description)
+    with open(path.join(output_directory, SNAKEMAKE_CONFIG_NAME), "w") as f:
         yaml.dump(
             {
                 "command": command,
