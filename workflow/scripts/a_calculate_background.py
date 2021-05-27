@@ -34,8 +34,7 @@ io.use_plugin("tifffile")
 import pycziutils
 from tqdm import tqdm
 
-from utils import (check_ipcluster_variable_defined, send_variable,
-                   with_ipcluster)
+from utils import check_ipcluster_variable_defined, send_variable, with_ipcluster
 
 
 def read_image(row, reader):
