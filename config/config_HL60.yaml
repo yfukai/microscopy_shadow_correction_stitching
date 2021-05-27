@@ -4,13 +4,13 @@
 # to estimate the background using that channel.
 # if False, validity check is skipped
 check_validity_channel: 
-  &check_validity_channel False
+  &check_validity_channel "Phase"
 
 # if channel names are provided, the background is estimated for 
 # each tile region by rescaling and applying the median filter.
 nonuniform_background_subtract_channels: 
   &nonuniform_background_subtract_channels 
-  []
+  ["Phase"]
 
 # The channel name used to stitch images
 stitching_channel: 
