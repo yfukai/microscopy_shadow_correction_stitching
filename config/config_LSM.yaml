@@ -14,7 +14,7 @@ nonuniform_background_subtract_channels:
 
 # The channel name used to stitch images
 stitching_channel: 
-  &stitching_channel "Phase"
+  &stitching_channel "488"
 
 # the background subtraction method: 
 # "divide", "subtract" or "none"
