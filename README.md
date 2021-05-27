@@ -8,7 +8,7 @@ A [Snakemake](https://snakemake.readthedocs.io) workflow for shadow correction a
 
 For installation, follow [this instruction](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html).
 
--fire
+- fire
 ```
 pip install fire
 ```
