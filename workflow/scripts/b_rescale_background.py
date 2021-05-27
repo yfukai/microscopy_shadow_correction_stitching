@@ -5,20 +5,19 @@ select and subtract the camera fixed background from the estimated background
 
 """
 
+import itertools
+import os
 import sys
 import warnings
-import os
-from os import path
 from glob import glob
+from os import path
 
 import fire
+import h5py
 import numpy as np
 import pandas as pd
 import xmltodict
-import h5py
 import yaml
-import itertools
-
 from matplotlib import pyplot as plt
 from skimage import filters, io
 

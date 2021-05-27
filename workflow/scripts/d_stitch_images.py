@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-import fire
 import os
-from os import path
-from glob import glob
 import re
+from glob import glob
+from os import path
+
+import fire
 import numpy as np
 import pandas as pd
-
 import pycziutils
+import yaml
+import zarr
 from m2stitch import stitching
 from tqdm import tqdm
-import zarr
-import yaml
 
 
 def main(

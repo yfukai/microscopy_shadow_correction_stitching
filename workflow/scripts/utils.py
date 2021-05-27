@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from time import sleep
 import os
-import signal
-from subprocess import Popen, PIPE, STDOUT
 import re
+import signal
+from subprocess import PIPE, STDOUT, Popen
+from time import sleep
+
 import numpy as np
 import pandas as pd
 

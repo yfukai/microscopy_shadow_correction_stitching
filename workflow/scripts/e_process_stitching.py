@@ -1,18 +1,18 @@
 #! /usr/bin/env python3
-import numpy as np
 import os
-from os import path
 import re
-import h5py
-import zarr
-import yaml
-import pandas as pd
-import numpy as np
-from matplotlib import pyplot as plt
+from os import path
+
 import fire
-from tqdm import tqdm
+import h5py
+import numpy as np
+import pandas as pd
+import yaml
+import zarr
 from dask import bag as db
 from dask.diagnostics import ProgressBar
+from matplotlib import pyplot as plt
+from tqdm import tqdm
 
 
 def process_stitching(

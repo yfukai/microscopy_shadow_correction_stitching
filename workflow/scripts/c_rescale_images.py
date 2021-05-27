@@ -7,23 +7,22 @@ prerequisites:
 - 9_rescaled_background.hdf5 exists for each image in analyzed_dir
 """
 
+import itertools
 import os
 from os import path
-import itertools
-import yaml
 
+import fire
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
-import fire
-from tqdm import tqdm
-from skimage import transform, filters
-from skimage.io import imsave, imread
-from skimage.morphology import disk
+import pycziutils
+import yaml
 import zarr
 from dask import bag as db
-
-import pycziutils
+from matplotlib import pyplot as plt
+from skimage import filters, transform
+from skimage.io import imread, imsave
+from skimage.morphology import disk
+from tqdm import tqdm
 
 
 @pycziutils.with_javabridge

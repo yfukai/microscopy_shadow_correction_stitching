@@ -6,37 +6,36 @@ and calculate the background by median
 
 """
 import importlib
+import itertools
+import os
 import sys
 import warnings
-import itertools
 from datetime import datetime, timedelta
-import yaml
-import os
 from os import path
+from time import sleep
 
 import bioformats
 import fire
+import h5py
 import ipyparallel as ipp
 import javabridge
 import numpy as np
-from numpy import ma as ma
-from time import sleep
 import pandas as pd
 import xmltodict
-import h5py
-
+import yaml
 from IPython.display import display
 from javabridge import jutil
 from matplotlib import pyplot as plt
+from numpy import ma as ma
 from scipy import ndimage
 from skimage import filters, io, measure, morphology, transform
 
 io.use_plugin("tifffile")
+import pycziutils
 from tqdm import tqdm
 
-import pycziutils
-
-from utils import with_ipcluster, send_variable, check_ipcluster_variable_defined
+from utils import (check_ipcluster_variable_defined, send_variable,
+                   with_ipcluster)
 
 
 def read_image(row, reader):
