@@ -26,13 +26,13 @@ A [Snakemake](https://snakemake.readthedocs.io) workflow for shadow correction a
     ```bash
     vim config/config.yaml
     ```
-4. choose the method to manage environment
+4. choose a way to manage the environment
 
     a. directly create the conda enviroment
-    
-        ```bash
-        mamba env create -f conda_env.yaml  -n stitching
-        ```
+    ```bash
+    mamba env create -f workflow/envs/conda_env.yaml  -n stitching
+    conda activate stitching
+    ```
        
     b. use conda environment in Snakemake 
         - install Snakemake by following [this instruction](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html).
