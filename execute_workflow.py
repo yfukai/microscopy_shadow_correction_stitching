@@ -34,7 +34,7 @@ def main(
         f'snakemake -j{n_cores} -d "{working_directory}" '
         + f'--config output_directory="{output_directory}" '
         + f' camera_dark_path="{camera_dark_image_path}" '
-        + f"-k --restart-times 5 --configfile {config} --use-conda {extra_args}"
+        + f"-k --restart-times 5 --configfile {config} {extra_args}"
     )
     if iscache:
         command = command + "--cache"
