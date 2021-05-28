@@ -12,11 +12,6 @@ A [Snakemake](https://snakemake.readthedocs.io) workflow for shadow correction a
     pip install fire
     ```
 
-
-<! --
-For installation, follow [this instruction](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html).
--->
-
 ## Usage
 1. clone the repository 
     ```bash
@@ -32,11 +27,15 @@ For installation, follow [this instruction](https://snakemake.readthedocs.io/en/
     vim config/config.yaml
     ```
 4. choose the method to manage environment
-  a. directly create the conda enviroment
-    ```bash
-    mamba env create -f conda_env.yaml  -n stitching
-    ```
-  b. use conda environment in Snakemake : add `--conda` option for `./execute_workflow.py`
+
+    a. directly create the conda enviroment
+        ```bash
+        mamba env create -f conda_env.yaml  -n stitching
+        ```
+       
+    b. use conda environment in Snakemake 
+        - install Snakemake by following [this instruction](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html).
+        - add `--conda` option for `./execute_workflow.py`
 
 5. run the workflow
     ```bash
