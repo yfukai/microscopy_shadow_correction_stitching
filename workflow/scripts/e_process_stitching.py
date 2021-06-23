@@ -21,6 +21,7 @@ def process_stitching(
     *,
     export_only_full_tile=True,
     rescale_methods=["divide"],
+    image_key="image"
 ):
 
     if stitching_csv_path is None:
@@ -133,7 +134,7 @@ def process_stitching(
         )
 
         output_zarr_path = path.join(
-            output_dir, f"stitched_image_{rescale_method}.zarr"
+            output_dir, f"stitched_image_{rescale_method}.zarr", image_key
         )
         output_zarr = zarr.open(
             output_zarr_path,

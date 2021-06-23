@@ -21,6 +21,7 @@ def main(
     camera_dark_image_path=False,
     config="config/config.yaml",
     extra_args="",
+    conda=False,
     iscache=False,
 ):
     os.makedirs(CACHE_PATH, exist_ok=True)
@@ -34,7 +35,8 @@ def main(
         f'snakemake -j{n_cores} -d "{working_directory}" '
         + f'--config output_directory="{output_directory}" '
         + f' camera_dark_path="{camera_dark_image_path}" '
-        + f"--use-conda -k --restart-times 5 --configfile {config} {extra_args}"
+        + f"{'--use-conda' if conda else ''} "
+        + f"-k --restart-times 5 --configfile {config} {extra_args}"
     )
     if iscache:
         command = command + "--cache"

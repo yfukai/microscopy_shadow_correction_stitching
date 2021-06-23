@@ -15,7 +15,7 @@ rule all:
 #    expand("{czi_file}_analyzed/.rescale_background.done", czi_file=czi_files)
 #    expand("{czi_file}_analyzed/.rescale_images.done", czi_file=czi_files)
 #    expand("{czi_file}_analyzed/.calculate_stitching.done", czi_file=czi_files)
-    expand("{czi_file}_analyzed/.process_stitching.done", czi_file=czi_files)
+    expand("{czi_file}_analyzed/.process_stitching.done", czi_file=czi_files),
     expand(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr", czi_file=czi_files)
 
 rule e_process_stitching:
@@ -23,7 +23,7 @@ rule e_process_stitching:
     output_dir_created = "{czi_file}_analyzed/.calculate_stitching.done"
   output:
     touch("{czi_file}_analyzed/.process_stitching.done"),
-    f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr"
+    directory(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr")
   threads:
     1
   conda:
