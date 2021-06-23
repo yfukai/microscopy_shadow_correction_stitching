@@ -8,6 +8,9 @@ output_directory = config["output_directory"]
 #configfile: "config/config.yaml"
 #configfile: "../config/config.yaml"
 
+def maybe_to_temp(filename):
+    return temp(filename) if config["remove_intermediate"] else filename
+
 rule all:
   input: 
 #    expand("{czi_file}_analyzed.created", czi_file=czi_files)
@@ -16,8 +19,39 @@ rule all:
 #    expand("{czi_file}_analyzed/.rescale_images.done", czi_file=czi_files)
 #    expand("{czi_file}_analyzed/.calculate_stitching.done", czi_file=czi_files)
     expand("{czi_file}_analyzed/.process_stitching.done", czi_file=czi_files),
-    expand(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr", czi_file=czi_files)
+    expand(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr", czi_file=czi_files),
+    expand(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}_tiff", czi_file=czi_files) 
+      if config["output_tiff"] else [],
+    expand(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}_thumbnail", czi_file=czi_files) 
+      if config["output_thumbnail"] else []
 
+
+rule f2_create_thumbnails:
+  input:
+    "{czi_file}_analyzed/.process_stitching.done",
+    zarr_path=f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr"
+  output:
+    directory(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}_thumbnail")
+  threads:
+    1
+  conda:
+    "envs/conda_env.yaml"
+  script:
+    "scripts/f2_create_thumbnails.py"
+ 
+rule f1_zarr_to_tiff:
+  input:
+    "{czi_file}_analyzed/.process_stitching.done",
+    zarr_path=f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr"
+  output:
+    directory(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}_tiff")
+  threads:
+    1
+  conda:
+    "envs/conda_env.yaml"
+  script:
+    "scripts/f_zarr_to_tiff.py"
+ 
 rule e_process_stitching:
   input:
     output_dir_created = "{czi_file}_analyzed/.calculate_stitching.done"
@@ -74,6 +108,7 @@ rule a_calculate_background:
     output_dir_created = "{czi_file}_analyzed.created"
   output:
     touch("{czi_file}_analyzed/.calculate_background.done")
+    if config["remove_intermediate"] else []
   threads:
     workflow.cores
   conda:

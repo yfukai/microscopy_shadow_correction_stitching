@@ -26,7 +26,9 @@ rescale_method:
 stitching_only_first_timepoint: 
   &stitching_first False
 
-
+output_tiff: False
+output_thumbnail: False
+delete_intermediate: False
 
 ############# misc configuration ############
 
