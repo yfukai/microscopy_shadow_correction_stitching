@@ -173,8 +173,8 @@ def process_stitching(
 if __name__ == "__main__":
     try:
         process_stitching(
-            path.dirname(snakemake.input["output_dir_created"]),
-            **snakemake.config["e_process_stitching"],
+            path.dirname(snakemake.input["output_dir_created"]), # type: ignore
+            **snakemake.config["e_process_stitching"], # type: ignore
         )
     except NameError as e:
         if "snakemake" in str(e):
