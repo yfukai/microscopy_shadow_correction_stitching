@@ -14,17 +14,17 @@ nonuniform_background_subtract_channels:
 
 # The channel name used to stitch images
 stitching_channel: 
-  &stitching_channel "488"
+  &stitching_channel "Phase"
 
 # the background subtraction method: 
 # "divide", "subtract" or "none"
 rescale_method: 
-  &rescale_method "divide"
+  &rescale_method "subtract"
 
 # if True, use only the first frame to stitch the images.
 # if False, median of all timepoint is calculated
 stitching_only_first_timepoint: 
-  &stitching_first False
+  &stitching_first True
 
 # if True, output TIFF files in addition to Zarr
 output_tiff: True
@@ -36,7 +36,6 @@ output_thumbnail: True
 
 # if True, remove intermediate files
 remove_intermediate: True
-
 
 ############# misc configuration ############
 

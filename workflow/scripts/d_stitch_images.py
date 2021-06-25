@@ -131,9 +131,9 @@ def main(
 if __name__ == "__main__":
     try:
         main(
-            path.dirname(snakemake.input["output_dir_created"]),
-            **snakemake.config["d_stitch_images"],
-            n_procs=snakemake.threads,
+            path.dirname(snakemake.input["output_dir_created"]), #type: ignore
+            **snakemake.config["d_stitch_images"], #type: ignore
+            n_procs=snakemake.threads, #type: ignore
         )
     except NameError as e:
         if "snakemake" in str(e):

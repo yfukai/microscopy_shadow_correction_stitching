@@ -28,8 +28,8 @@ rule all:
 
 rule f2_create_thumbnails:
   input:
-    "{czi_file}_analyzed/.process_stitching.done",
-    zarr_path=f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr"
+    output_dir_created = "{czi_file}_analyzed/.process_stitching.done",
+    zarr_path = f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr"
   output:
     directory(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}_thumbnail")
   threads:
@@ -41,8 +41,8 @@ rule f2_create_thumbnails:
  
 rule f1_zarr_to_tiff:
   input:
-    "{czi_file}_analyzed/.process_stitching.done",
-    zarr_path=f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr"
+    output_dir_created = "{czi_file}_analyzed/.process_stitching.done",
+    zarr_path = f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr"
   output:
     directory(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}_tiff")
   threads:
@@ -50,7 +50,7 @@ rule f1_zarr_to_tiff:
   conda:
     "envs/conda_env.yaml"
   script:
-    "scripts/f_zarr_to_tiff.py"
+    "scripts/f1_zarr_to_tiff.py"
  
 rule e_process_stitching:
   input:

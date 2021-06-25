@@ -200,9 +200,9 @@ def rescale_images(
 if __name__ == "__main__":
     try:
         rescale_images(
-            snakemake.input["filename"],
-            path.dirname(snakemake.input["output_dir_created"]),
-            **snakemake.config["c_rescale_images"],
+            snakemake.input["filename"], #type: ignore
+            path.dirname(snakemake.input["output_dir_created"]), #type: ignore
+            **snakemake.config["c_rescale_images"], #type: ignore
         )
     except NameError as e:
         raise e

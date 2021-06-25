@@ -23,6 +23,7 @@ def main(
     extra_args="",
     conda=False,
     iscache=False,
+    errorfail=False,
 ):
     os.makedirs(CACHE_PATH, exist_ok=True)
     os.environ["SNAKEMAKE_OUTPUT_CACHE"] = CACHE_PATH
@@ -35,8 +36,9 @@ def main(
         f'snakemake -j{n_cores} -d "{working_directory}" '
         + f'--config output_directory="{output_directory}" '
         + f' camera_dark_path="{camera_dark_image_path}" '
-        + f"{'--use-conda' if conda else ''} "
-        + f"-k --restart-times 5 --configfile {config} {extra_args}"
+        + ('--use-conda ' if conda else '')
+        + ('-k --restart-times 5 ' if not errorfail else '')
+        + f"--configfile {config} {extra_args}"
     )
     if iscache:
         command = command + "--cache"

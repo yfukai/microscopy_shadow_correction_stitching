@@ -134,11 +134,14 @@ def process_stitching(
         )
 
         output_zarr_path = path.join(
-            output_dir, f"stitched_image_{rescale_method}.zarr", image_key
+            output_dir, f"stitched_image_{rescale_method}.zarr",
         )
-        output_zarr = zarr.open(
+        output_zarr_file = zarr.open(
             output_zarr_path,
             mode="w",
+        )
+        output_zarr = output_zarr_file.create_dataset(
+            image_key, 
             shape=stitched_image_size,
             chunks=(1, 1, 1, 2048, 2048),
             dtype=np.float32,
@@ -174,8 +177,8 @@ def process_stitching(
 if __name__ == "__main__":
     try:
         process_stitching(
-            path.dirname(snakemake.input["output_dir_created"]),
-            **snakemake.config["e_process_stitching"],
+            path.dirname(snakemake.input["output_dir_created"]), #type: ignore
+            **snakemake.config["e_process_stitching"], #type: ignore
         )
     except NameError as e:
         if "snakemake" in str(e):

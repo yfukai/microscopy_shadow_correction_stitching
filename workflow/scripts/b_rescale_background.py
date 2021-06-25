@@ -232,9 +232,9 @@ def rescale_background(
 if __name__ == "__main__":
     try:
         rescale_background(
-            path.dirname(snakemake.input["output_dir_created"]),
-            snakemake.config["camera_dark_path"],
-            **snakemake.config["b_rescale_background"],
+            path.dirname(snakemake.input["output_dir_created"]), #type: ignore
+            snakemake.config["camera_dark_path"], #type: ignore
+            **snakemake.config["b_rescale_background"], #type: ignore
         )
     except NameError as e:
         if "snakemake" in str(e):

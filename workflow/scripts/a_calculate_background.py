@@ -159,7 +159,7 @@ def calculate_background(
         @ipp.require(summarize_image)
         def _summarize_image(row):
             return summarize_image(
-                row, _reader, thumbnail_size, quantile
+                row, _reader, thumbnail_size, quantile # type: ignore pylint: disable=undefined-variable
             )  # pylint: disable=undefined-variable
 
         res = bview.map_async(
@@ -238,8 +238,8 @@ def calculate_background(
         send_variable(dview, "threshold_image", threshold_image)
         res = bview.map_async(
             lambda row: threshold_image(
-                row, _reader, sigma, th_low, th_high
-            ),  # pylint: disable=undefined-variable
+                row, _reader, sigma, th_low, th_high # type: ignore pylint: disable=undefined-variable
+            ),  
             [row for _, row in list(ph_planes_df.iterrows())],
         )
         res.wait_interactive()
@@ -428,10 +428,10 @@ def calculate_background(
 if __name__ == "__main__":
     try:
         calculate_background(
-            snakemake.input["filename"],
-            snakemake.input["output_dir_created"].replace(".created", ""),
-            **snakemake.config["a_calculate_background"],
-            ipcluster_nproc=snakemake.threads,
+            snakemake.input["filename"], #type: ignore
+            snakemake.input["output_dir_created"].replace(".created", ""), #type: ignore
+            **snakemake.config["a_calculate_background"], #type: ignore
+            ipcluster_nproc=snakemake.threads, #type: ignore
         )
     except NameError as e:
         if "snakemake" in str(e):

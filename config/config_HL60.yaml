@@ -26,9 +26,14 @@ rescale_method:
 stitching_only_first_timepoint: 
   &stitching_first False
 
+# if True, output TIFF files in addition to Zarr
 output_tiff: False
-output_thumbnail: False
-delete_intermediate: False
+
+# if True, output thumbnail of the output image
+output_thumbnail: True
+
+# if True, remove intermediate files
+remove_intermediate: False
 
 ############# misc configuration ############
 
