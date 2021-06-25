@@ -57,6 +57,7 @@ rule f1_zarr_to_tiff:
  
 rule e_process_stitching:
   input:
+    f"{analyzed_dir}/rescaled_images/rescaled_image_{rescale_method}",
     output_dir_created = "{czi_file}_analyzed/.calculate_stitching.done"
   output:
     touch("{czi_file}_analyzed/.process_stitching.done"),
