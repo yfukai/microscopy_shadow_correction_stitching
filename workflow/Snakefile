@@ -8,8 +8,8 @@ output_directory = config["output_directory"]
 #configfile: "config/config.yaml"
 #configfile: "../config/config.yaml"
 
-def maybe_to_temp(filename):
-    return temp(filename) if config["remove_intermediate"] else filename
+def maybe_to_temp(filename,notemp=False):
+    return temp(filename) if config["remove_intermediate"] and not notemp else filename
 
 rule all:
   input: 
@@ -57,7 +57,10 @@ rule e_process_stitching:
     output_dir_created = "{czi_file}_analyzed/.calculate_stitching.done"
   output:
     touch("{czi_file}_analyzed/.process_stitching.done"),
-    directory(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr")
+    maybe_to_temp(
+      directory(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr"),
+      not config["output_tiff"]
+    )
   threads:
     1
   conda:
@@ -83,6 +86,9 @@ rule c_rescale_images:
     output_dir_created = "{czi_file}_analyzed/.rescale_background.done"
   output:
     touch("{czi_file}_analyzed/.rescale_images.done")
+    maybe_to_temp(
+      directory(f"{{czi_file}}_analyzed/rescaled_images/rescaled_image_{config['rescale_method']}")
+    ),
   threads:
     1
   conda:
@@ -107,8 +113,9 @@ rule a_calculate_background:
     filename = "{czi_file}.czi", 
     output_dir_created = "{czi_file}_analyzed.created"
   output:
-    touch("{czi_file}_analyzed/.calculate_background.done")
-    if config["remove_intermediate"] else []
+    touch("{czi_file}_analyzed/.calculate_background.done"),
+    maybe_to_temp("{czi_file}_analyzed/background_per_tile.hdf5"),
+
   threads:
     workflow.cores
   conda:
