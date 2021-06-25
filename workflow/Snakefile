@@ -57,7 +57,7 @@ rule f1_zarr_to_tiff:
  
 rule e_process_stitching:
   input:
-    f"{analyzed_dir}/rescaled_images/rescaled_image_{rescale_method}",
+    f"{analyzed_dir}/rescaled_images",
     output_dir_created = "{czi_file}_analyzed/.calculate_stitching.done"
   output:
     touch("{czi_file}_analyzed/.process_stitching.done"),
@@ -74,7 +74,7 @@ rule e_process_stitching:
     
 rule d_calculate_stitching:
   input:
-    f"{analyzed_dir}/rescaled_images/rescaled_image_{rescale_method}",
+    f"{analyzed_dir}/rescaled_images",
     output_dir_created = "{czi_file}_analyzed/.rescale_images.done",
   output:
     touch("{czi_file}_analyzed/.calculate_stitching.done"),
@@ -92,7 +92,7 @@ rule c_rescale_images:
   output:
     touch("{czi_file}_analyzed/.rescale_images.done"),
     directory(maybe_to_temp(
-      f"{analyzed_dir}/rescaled_images/rescaled_image_{rescale_method}")),
+      f"{analyzed_dir}/rescaled_images")),
   threads:
     1
   conda:
