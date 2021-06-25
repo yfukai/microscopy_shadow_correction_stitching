@@ -73,7 +73,8 @@ rule e_process_stitching:
     
 rule d_calculate_stitching:
   input:
-    output_dir_created = "{czi_file}_analyzed/.rescale_images.done"
+    f"{analyzed_dir}/rescaled_images/rescaled_image_{rescale_method}",
+    output_dir_created = "{czi_file}_analyzed/.rescale_images.done",
   output:
     touch("{czi_file}_analyzed/.calculate_stitching.done"),
   threads:
