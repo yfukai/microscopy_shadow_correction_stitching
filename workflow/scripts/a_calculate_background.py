@@ -434,6 +434,6 @@ if __name__ == "__main__":
             ipcluster_nproc=snakemake.threads, #type: ignore
         )
     except NameError as e:
-        if "snakemake" in str(e):
+        if not "snakemake" in str(e):
             raise e
         fire.Fire(calculate_background)

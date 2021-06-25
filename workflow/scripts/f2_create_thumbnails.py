@@ -36,6 +36,6 @@ if __name__ == "__main__":
             snakemake.input["zarr_path"], #type: ignore
         )
     except NameError as e:
-        if "snakemake" in str(e):
+        if not "snakemake" in str(e):
             raise e
         fire.Fire(create_thumbnails)

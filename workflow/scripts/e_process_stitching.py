@@ -181,6 +181,6 @@ if __name__ == "__main__":
             **snakemake.config["e_process_stitching"], #type: ignore
         )
     except NameError as e:
-        if "snakemake" in str(e):
+        if not "snakemake" in str(e):
             raise e
         fire.Fire(process_stitching)

@@ -205,7 +205,6 @@ if __name__ == "__main__":
             **snakemake.config["c_rescale_images"], #type: ignore
         )
     except NameError as e:
-        raise e
-        if "snakemake" in str(e):
+        if not "snakemake" in str(e):
             raise e
         fire.Fire(rescale_images)

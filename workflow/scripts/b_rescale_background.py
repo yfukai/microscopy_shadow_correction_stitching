@@ -237,6 +237,6 @@ if __name__ == "__main__":
             **snakemake.config["b_rescale_background"], #type: ignore
         )
     except NameError as e:
-        if "snakemake" in str(e):
+        if not "snakemake" in str(e):
             raise e
         fire.Fire(rescale_background)
