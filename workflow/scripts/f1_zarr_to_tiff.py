@@ -22,7 +22,7 @@ def zarr_to_tiff(zarr_path,
                  *,
                  type_string="float32",
                  intensity_rescale=False,
-                 intensity_rescale_quantiles=(0.001,0.999)
+                 intensity_rescale_percentiles=(0.001,99.999)
     ):
 
     assert type_string in type_strings, f"type_string must be in {type_strings}"
@@ -31,22 +31,32 @@ def zarr_to_tiff(zarr_path,
         tiff_dir_path=path.splitext(zarr_path)[0]+"_tiff"
     os.makedirs(tiff_dir_path,exist_ok=True)
     zarr_file=zarr.open(zarr_path,mode="r")["image"]
-    image=da.from_zarr(zarr_file)
+    image=da.from_zarr(zarr_file).astype(np.float32)
+    assert len(image.shape)==5 # assume TCZYX
+    sizeT,sizeC,sizeZ=image.shape[:3]
     
+    qs=[]
     if intensity_rescale==True:
-        q1,q2=np.quantile(image,intensity_rescale_quantiles)
-        image=np.clip((image-q1)/(q2-q1))
-
+        for iC in range(sizeC):
+            q1,q2=np.percentile(image[:,iC,:,:,:].flatten(),
+                   intensity_rescale_percentiles).compute()
+            print(q1,q2)
+            qs.append([q1,q2])
+        
     dtype=np.dtype(type_string)
-    if "int" in type_strings:
+    if "int" in type_string:
         dtype_max=np.iinfo(dtype).max
-        image=image*dtype_max
-    image=image.astype(dtype)
+        print(dtype_max)
 
-    assert len(zarr_file.shape)==5 # assume TCZYX
-    sizeT,sizeC,sizeZ=zarr_file.shape[:3]
     for iT,iC,iZ in tqdm(np.ndindex(sizeT,sizeC,sizeZ),total=sizeT*sizeC*sizeZ):
         subimage=image[iT,iC,iZ].compute()
+        if intensity_rescale==True:
+            q1,q2=qs[iC]
+            subimage=np.clip((subimage-q1)/(q2-q1),0,1)
+            if "int" in type_string:
+                subimage = subimage*dtype_max
+        subimage=subimage.astype(dtype)
+        #print(np.histogram(subimage.flatten()))
         tifffile.imsave(
             path.join(tiff_dir_path,
                      f"image_T{iT:03d}_C{iC:03d}_Z{iZ:03d}.tiff"),
@@ -60,6 +70,6 @@ if __name__ == "__main__":
             **snakemake.config["f1_zarr_to_tiff"], # type:ignore pylint:disable=undefined-variable
         )
     except NameError as e:
-        if "snakemake" in str(e):
+        if not "snakemake" in str(e):
             raise e
         fire.Fire(zarr_to_tiff)

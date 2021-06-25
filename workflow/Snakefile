@@ -11,6 +11,9 @@ output_directory = config["output_directory"]
 def maybe_to_temp(filename,notemp=False):
     return temp(filename) if config["remove_intermediate"] and not notemp else filename
 
+analyzed_dir="{czi_file}_analyzed"
+rescale_method=config['rescale_method']
+
 rule all:
   input: 
 #    expand("{czi_file}_analyzed.created", czi_file=czi_files)
@@ -18,20 +21,20 @@ rule all:
 #    expand("{czi_file}_analyzed/.rescale_background.done", czi_file=czi_files)
 #    expand("{czi_file}_analyzed/.rescale_images.done", czi_file=czi_files)
 #    expand("{czi_file}_analyzed/.calculate_stitching.done", czi_file=czi_files)
-    expand("{czi_file}_analyzed/.process_stitching.done", czi_file=czi_files),
-    expand(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr", czi_file=czi_files),
-    expand(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}_tiff", czi_file=czi_files) 
+    expand(f"{analyzed_dir}/.process_stitching.done", czi_file=czi_files),
+    expand(f"{analyzed_dir}/stitched_image_{rescale_method}.zarr", czi_file=czi_files),
+    expand(f"{analyzed_dir}/stitched_image_{rescale_method}_tiff", czi_file=czi_files) 
       if config["output_tiff"] else [],
-    expand(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}_thumbnail", czi_file=czi_files) 
+    expand(f"{analyzed_dir}/stitched_image_{rescale_method}_thumbnail", czi_file=czi_files) 
       if config["output_thumbnail"] else []
 
 
 rule f2_create_thumbnails:
   input:
     output_dir_created = "{czi_file}_analyzed/.process_stitching.done",
-    zarr_path = f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr"
+    zarr_path = f"{analyzed_dir}/stitched_image_{rescale_method}.zarr"
   output:
-    directory(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}_thumbnail")
+    directory(f"{analyzed_dir}/stitched_image_{rescale_method}_thumbnail")
   threads:
     1
   conda:
@@ -42,9 +45,9 @@ rule f2_create_thumbnails:
 rule f1_zarr_to_tiff:
   input:
     output_dir_created = "{czi_file}_analyzed/.process_stitching.done",
-    zarr_path = f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr"
+    zarr_path = f"{analyzed_dir}/stitched_image_{rescale_method}.zarr"
   output:
-    directory(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}_tiff")
+    directory(f"{analyzed_dir}/stitched_image_{rescale_method}_tiff")
   threads:
     1
   conda:
@@ -58,7 +61,7 @@ rule e_process_stitching:
   output:
     touch("{czi_file}_analyzed/.process_stitching.done"),
     maybe_to_temp(
-      directory(f"{{czi_file}}_analyzed/stitched_image_{config['rescale_method']}.zarr"),
+      directory(f"{analyzed_dir}/stitched_image_{rescale_method}.zarr"),
       not config["output_tiff"]
     )
   threads:
@@ -85,10 +88,9 @@ rule c_rescale_images:
     filename = "{czi_file}.czi", 
     output_dir_created = "{czi_file}_analyzed/.rescale_background.done"
   output:
-    touch("{czi_file}_analyzed/.rescale_images.done")
-    maybe_to_temp(
-      directory(f"{{czi_file}}_analyzed/rescaled_images/rescaled_image_{config['rescale_method']}")
-    ),
+    touch("{czi_file}_analyzed/.rescale_images.done"),
+    directory(maybe_to_temp(
+      f"{analyzed_dir}/rescaled_images/rescaled_image_{rescale_method}")),
   threads:
     1
   conda:

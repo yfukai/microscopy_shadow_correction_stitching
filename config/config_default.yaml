@@ -10,7 +10,7 @@ check_validity_channel:
 # each tile region by rescaling and applying the median filter.
 nonuniform_background_subtract_channels: 
   &nonuniform_background_subtract_channels 
-  []
+  ["Phase"]
 
 # The channel name used to stitch images
 stitching_channel: 
@@ -85,6 +85,6 @@ e_process_stitching:
 f1_zarr_to_tiff: 
   type_string: *output_tiff_dtype
   intensity_rescale: True
-  intensity_rescale_quantiles: [0.001,0.999]
+  intensity_rescale_percentiles: [0.0001,99.9999]
 
 camera_dark_path: False
