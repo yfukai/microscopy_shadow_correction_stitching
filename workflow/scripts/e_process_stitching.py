@@ -35,6 +35,13 @@ def process_stitching(
     planes_df = pd.read_csv(path.join(output_dir, "planes_df3.csv"))
     stitching_df = pd.read_csv(stitching_csv_path, index_col=0)
 
+    image_props_path = path.join(output_dir, "image_props.yaml")
+    assert path.isfile(image_props_path)
+    with open(image_props_path, "r") as f:
+        image_props = yaml.safe_load(f)
+    channel_names = image_props["channel_names"]
+    pixel_sizes = image_props["pixel_sizes"]
+
     stitching_df2 = pd.merge(
         stitching_df,
         planes_df,
@@ -146,6 +153,8 @@ def process_stitching(
             chunks=(1, 1, 1, 2048, 2048),
             dtype=np.float32,
         )
+        output_zarr.attrs["channel_names"]=channel_names
+        output_zarr.attrs["pixel_sizes"]=pixel_sizes
 
         def execute_stitching_for_single_plane(args):
             t, grp = args

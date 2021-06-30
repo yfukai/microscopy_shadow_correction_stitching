@@ -31,6 +31,7 @@ def zarr_to_tiff(zarr_path,
         tiff_dir_path=path.splitext(zarr_path)[0]+"_tiff"
     os.makedirs(tiff_dir_path,exist_ok=True)
     zarr_file=zarr.open(zarr_path,mode="r")["image"]
+    channel_names=zarr_file.attrs["channel_names"]
     image=da.from_zarr(zarr_file).astype(np.float32)
     assert len(image.shape)==5 # assume TCZYX
     sizeT,sizeC,sizeZ=image.shape[:3]
@@ -59,7 +60,7 @@ def zarr_to_tiff(zarr_path,
         #print(np.histogram(subimage.flatten()))
         tifffile.imsave(
             path.join(tiff_dir_path,
-                     f"image_T{iT:03d}_C{iC:03d}_Z{iZ:03d}.tiff"),
+                     f"image_T{iT:03d}_C{iC:03d}_{channel_names[iC]}_Z{iZ:03d}.tiff"),
                      subimage)
 
 
