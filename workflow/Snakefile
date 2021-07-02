@@ -28,7 +28,11 @@ rule all:
     expand(f"{analyzed_dir}/stitched_image_{rescale_method}_thumbnail", czi_file=czi_files) 
       if config["output_thumbnail"] else []
 
-
+rule rescale:
+  input: 
+    expand(f"{analyzed_dir}/.rescale_images.done", czi_file=czi_files),
+    expand(f"{analyzed_dir}/rescaled_images", czi_file=czi_files),
+   
 rule f2_create_thumbnails:
   input:
     output_dir_created = "{czi_file}_analyzed/.process_stitching.done",

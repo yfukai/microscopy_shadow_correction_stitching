@@ -18,10 +18,11 @@ def main(
     n_cores,
     working_directory,
     output_directory,
+    target="all",
     camera_dark_image_path=False,
     config="config/config.yaml",
     extra_args="",
-    conda=False,
+    conda=True,
     iscache=False,
     errorfail=False,
 ):
@@ -33,7 +34,7 @@ def main(
     output_directory = path.abspath(output_directory)
     os.makedirs(output_directory, exist_ok=True)
     command = (
-        f'snakemake -j{n_cores} -d "{working_directory}" '
+        f'snakemake {target} -j{n_cores} -d "{working_directory}" '
         + f'--config output_directory="{output_directory}" '
         + f' camera_dark_path="{camera_dark_image_path}" '
         + ('--use-conda ' if conda else '')
