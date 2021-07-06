@@ -77,7 +77,7 @@ def main(
                     image_directory2,
                     f"S{s:03d}_{row['row_col_label']}.zarr",
                 )
-                img = zarr.open(rescaled_image_path, mode="r")[t, c, z, :, :]
+                img = zarr.open(rescaled_image_path, mode="r")["image"][t, c, z, :, :]
                 images.append(img)
                 rows.append(row["X_index"])
                 cols.append(row["Y_index"])

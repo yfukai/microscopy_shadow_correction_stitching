@@ -153,12 +153,16 @@ def rescale_images(
                 image_directory2,
                 f"S{s:03d}_{grp.iloc[0]['row_col_label']}.zarr",
             )
-            rescaled_image = zarr.open(
+            rescaled_image_file = zarr.open(
                 rescaled_image_path,
                 mode="w",
+            )
+            rescaled_image = rescaled_image_file.create_dataset(
+                "image",
                 shape=(sizeT, sizeC, sizeZ, sizeY, sizeX),
                 chunks=(1, sizeC, sizeZ, sizeY, sizeX),
                 dtype=np.float32,
+                overwrite=True,
             )
             for _, row in grp.iterrows():
                 c, t, z = int(row["C_index"]), int(row["T_index"]), int(row["Z_index"])

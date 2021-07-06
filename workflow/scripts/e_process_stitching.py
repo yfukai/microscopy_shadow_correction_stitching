@@ -121,7 +121,7 @@ def process_stitching(
 
         input_zarr_shape = None
         for input_zarr_path in stitching_df2["input_zarr_path"]:
-            input_zarr = zarr.open(input_zarr_path, mode="r")
+            input_zarr = zarr.open(input_zarr_path, mode="r")["image"]
             if input_zarr_shape is None:
                 input_zarr_shape = input_zarr.shape
             else:
@@ -161,7 +161,7 @@ def process_stitching(
             stitched_image = np.zeros(stitched_image_size[1:], dtype=np.float16)
             for i, row in tqdm(grp.iterrows(), total=len(grp)):
                 input_zarr_path = row["input_zarr_path"]
-                input_zarr = zarr.open(input_zarr_path, mode="r")
+                input_zarr = zarr.open(input_zarr_path, mode="r")["image"]
                 x2 = int(row["x_pos2"])
                 y2 = int(row["y_pos2"])
                 window = (slice(y2, y2 + sizeY), slice(x2, x2 + sizeX))
