@@ -1,5 +1,6 @@
 from glob import glob
 from os import path
+import shutil
 
 czi_files = glob(path.join("**","*.czi"),recursive=True)
 czi_files = [f[:-4] for f in czi_files if path.isfile(f)]
@@ -14,6 +15,10 @@ def maybe_to_temp(filename,notemp=False):
 analyzed_dir="{czi_file}_analyzed"
 rescale_method=config['rescale_method']
 
+onsuccess:
+  shutil.rmtree(".snakemake", ignore_errors=True)
+
+
 rule all:
   input: 
 #    expand("{czi_file}_analyzed.created", czi_file=czi_files)
@@ -27,7 +32,6 @@ rule all:
       if config["output_tiff"] else [],
     expand(f"{analyzed_dir}/stitched_image_{rescale_method}_thumbnail", czi_file=czi_files) 
       if config["output_thumbnail"] else []
-
 rule rescale:
   input: 
     expand(f"{analyzed_dir}/.rescale_images.done", czi_file=czi_files),

@@ -164,6 +164,7 @@ def rescale_images(
                 dtype=np.float32,
                 overwrite=True,
             )
+            rescaled_image.attrs["channel_names"] = channel_names
             for _, row in grp.iterrows():
                 c, t, z = int(row["C_index"]), int(row["T_index"]), int(row["Z_index"])
                 background = backgroundss[(c, z)]
