@@ -144,5 +144,5 @@ rule create_output_directories:
     output1=output[0].replace(".created","")
     output2=path.join(output_directory,output1)
     output3=path.dirname(output1)
-    shell("sync && mkdir -p {output2} && ln -sf {output2} {output3} && touch {output[0]}")
+    shell("mkdir -p {output2} && ln -sf {output2} {output3} && touch {output[0]}")
   
