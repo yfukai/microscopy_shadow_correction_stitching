@@ -1,6 +1,6 @@
-# CZI shadow correction and stitching
+# Zeiss CZI shadow correction and stitching
 
-A [Snakemake](https://snakemake.readthedocs.io) workflow for shadow correction and stitching.
+A [Snakemake](https://snakemake.readthedocs.io) workflow for shadow correction and stitching for Zeiss CZI files.
 
 ## Requirements
 - conda and mamba
