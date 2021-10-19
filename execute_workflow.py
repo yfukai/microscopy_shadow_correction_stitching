@@ -3,6 +3,7 @@
 import fire
 from subprocess import call, check_output
 import os
+import sys
 from os import path
 import shutil
 import yaml
@@ -29,6 +30,9 @@ def main(
     os.makedirs(CACHE_PATH, exist_ok=True)
     os.environ["SNAKEMAKE_OUTPUT_CACHE"] = CACHE_PATH
 
+    if not path.isdir(output_directory):
+        print(f"output_directory {output_directory} not found.")
+        sys.exit(1)
     os.chdir(path.dirname(SCRIPT_PATH))
     working_directory = path.abspath(working_directory)
     output_directory = path.abspath(output_directory)
@@ -59,6 +63,8 @@ def main(
         )
     print(command)
     call(command, shell=True)
+
+    sys.exit(0)
 
 
 if __name__ == "__main__":
