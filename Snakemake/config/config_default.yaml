@@ -4,7 +4,7 @@
 # to estimate the background using that channel.
 # if False, validity check is skipped
 check_validity_channel: 
-  &check_validity_channel "Phase"
+  &check_validity_channel False
 
 # if channel names are provided, the background is estimated for 
 # each tile region by rescaling and applying the median filter.
@@ -19,14 +19,23 @@ stitching_channel:
 # the background subtraction method: 
 # "divide", "subtract" or "none"
 rescale_method: 
-  &rescale_method "divide"
+  &rescale_method "subtract"
 
 # if True, use only the first frame to stitch the images.
 # if False, median of all timepoint is calculated
 stitching_only_first_timepoint: 
-  &stitching_first False
+  &stitching_first True
 
+# if True, output TIFF files in addition to Zarr
+output_tiff: True
+output_tiff_dtype: 
+  &output_tiff_dtype "uint8"
 
+# if True, output thumbnail of the output image
+output_thumbnail: True
+
+# if True, remove intermediate files
+remove_intermediate: True
 
 ############# misc configuration ############
 
@@ -72,5 +81,10 @@ e_process_stitching:
   export_only_full_tile: True
   rescale_methods: 
     - *rescale_method
+
+f1_zarr_to_tiff: 
+  type_string: *output_tiff_dtype
+  intensity_rescale: True
+  intensity_rescale_percentiles: [0.01,99.99]
 
 camera_dark_path: False

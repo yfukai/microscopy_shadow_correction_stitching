@@ -153,13 +153,18 @@ def rescale_images(
                 image_directory2,
                 f"S{s:03d}_{grp.iloc[0]['row_col_label']}.zarr",
             )
-            rescaled_image = zarr.open(
+            rescaled_image_file = zarr.open(
                 rescaled_image_path,
                 mode="w",
+            )
+            rescaled_image = rescaled_image_file.create_dataset(
+                "image",
                 shape=(sizeT, sizeC, sizeZ, sizeY, sizeX),
                 chunks=(1, sizeC, sizeZ, sizeY, sizeX),
                 dtype=np.float32,
+                overwrite=True,
             )
+            rescaled_image.attrs["channel_names"] = channel_names
             for _, row in grp.iterrows():
                 c, t, z = int(row["C_index"]), int(row["T_index"]), int(row["Z_index"])
                 background = backgroundss[(c, z)]
@@ -200,12 +205,11 @@ def rescale_images(
 if __name__ == "__main__":
     try:
         rescale_images(
-            snakemake.input["filename"],
-            path.dirname(snakemake.input["output_dir_created"]),
-            **snakemake.config["c_rescale_images"],
+            snakemake.input["filename"], #type: ignore
+            path.dirname(snakemake.input["output_dir_created"]), #type: ignore
+            **snakemake.config["c_rescale_images"], #type: ignore
         )
     except NameError as e:
-        raise e
-        if "snakemake" in str(e):
+        if not "snakemake" in str(e):
             raise e
         fire.Fire(rescale_images)

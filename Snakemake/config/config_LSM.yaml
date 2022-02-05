@@ -1,0 +1,91 @@
+############# basic configuration ############
+
+# if a channel name is provided, check whether the image is valid 
+# to estimate the background using that channel.
+# if False, validity check is skipped
+check_validity_channel: 
+  &check_validity_channel False
+
+# if channel names are provided, the background is estimated for 
+# each tile region by rescaling and applying the median filter.
+nonuniform_background_subtract_channels: 
+  &nonuniform_background_subtract_channels 
+  []
+
+# The channel name used to stitch images
+stitching_channel: 
+  &stitching_channel "488"
+
+# the background subtraction method: 
+# "divide", "subtract" or "none"
+rescale_method: 
+  &rescale_method "divide"
+
+# if True, use only the first frame to stitch the images.
+# if False, median of all timepoint is calculated
+stitching_only_first_timepoint: 
+  &stitching_first False
+
+# if True, output TIFF files in addition to Zarr
+output_tiff: True
+output_tiff_dtype: 
+  &output_tiff_dtype "uint8"
+
+# if True, output thumbnail of the output image
+output_thumbnail: True
+
+# if True, remove intermediate files
+remove_intermediate: True
+
+
+############# misc configuration ############
+
+a_calculate_background:
+  # the valid range of intensity is calculated by (the most frequent mean) +- (the most frequent stdev) * th_factor
+  th_factor: 3.
+  # the frames with more pixels than above_threshold_pixel_ratio_max * (total pixel count) is above the upper valid range is regarded invalid)
+  above_threshold_pixel_ratio_max: 0.05
+  # the frames with more pixels than below_threshold_pixel_ratio_max * (total pixel count) is below the lower valid range is regarded invalid)
+  below_threshold_pixel_ratio_max: 0.05
+  # the stage position (series) with more time points than valid_ratio_threshold * (total frame count) is regarded invalid
+  valid_ratio_threshold: 0.4
+  # the bin count to estimate the most frequent stdev and mean
+  intensity_bin_size: 25
+  # the size of thumbnail to output
+  thumbnail_size: 20
+  # the quantile threshold to calculate the background by mean averaging
+  quantile: 0.001
+
+  check_validity_channel: *check_validity_channel
+
+b_rescale_background:
+  match_keys: ["LUT","binning","bit_depth"]
+  smoothing: "gaussian"
+  sigma: 10
+
+c_rescale_images:
+  background_method: "median"
+  background_smoothing: True
+  nonuniform_background_shrink_factor: 0.05
+  nonuniform_background_median_disk_size: 5
+  nonuniform_background_subtract_channels: *nonuniform_background_subtract_channels
+  modes: 
+    - *rescale_method
+
+d_stitch_images:
+  only_first_timepoint: *stitching_first
+  stitching_channels: 
+    - *stitching_channel
+  stitching_mode: *rescale_method
+
+e_process_stitching: 
+  export_only_full_tile: True
+  rescale_methods: 
+    - *rescale_method
+
+f1_zarr_to_tiff: 
+  type_string: *output_tiff_dtype
+  intensity_rescale: True
+  intensity_rescale_quantiles: [0.001,0.999]
+
+camera_dark_path: False

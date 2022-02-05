@@ -77,7 +77,7 @@ def main(
                     image_directory2,
                     f"S{s:03d}_{row['row_col_label']}.zarr",
                 )
-                img = zarr.open(rescaled_image_path, mode="r")[t, c, z, :, :]
+                img = zarr.open(rescaled_image_path, mode="r")["image"][t, c, z, :, :]
                 images.append(img)
                 rows.append(row["X_index"])
                 cols.append(row["Y_index"])
@@ -131,11 +131,11 @@ def main(
 if __name__ == "__main__":
     try:
         main(
-            path.dirname(snakemake.input["output_dir_created"]),
-            **snakemake.config["d_stitch_images"],
-            n_procs=snakemake.threads,
+            path.dirname(snakemake.input["output_dir_created"]), #type: ignore
+            **snakemake.config["d_stitch_images"], #type: ignore
+            n_procs=snakemake.threads, #type: ignore
         )
     except NameError as e:
-        if "snakemake" in str(e):
+        if not "snakemake" in str(e):
             raise e
         fire.Fire(main)
