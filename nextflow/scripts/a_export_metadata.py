@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from aicsimageio import AICSImage
 import click
 import yaml

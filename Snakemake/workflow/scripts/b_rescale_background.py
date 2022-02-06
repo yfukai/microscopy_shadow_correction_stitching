@@ -143,15 +143,25 @@ def rescale_background(
                     print(f)
                     with open(f.replace(".tiff", ".yaml")) as f2:
                         props = yaml.safe_load(f2)
+                    print([(props[k], camera_props[k])
+                           for k in camera_props.keys()])
+                    #XXX dirty impl!
+                    def custom_array_equal(a1,a2):
+                        try:
+                            return np.array_equal(a1,a2, equal_nan=True)
+                        except:
+                            return np.array_equal(a1,a2)
+
                     if all(
                         [
-                            np.array_equal(props[k], camera_props[k])
+                            custom_array_equal(props[k], camera_props[k],)
                             for k in camera_props.keys()
                         ]
                     ):
                         candidate_files.append(f)
                         propss.append(props)
                         exposures.append(props["exposure"])
+                        print("")
                 dark_image_file = candidate_files[np.argmax(exposures)]
                 props = propss[np.argmax(exposures)]
                 del props["meta"]

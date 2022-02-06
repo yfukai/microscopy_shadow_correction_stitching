@@ -32,7 +32,7 @@ dependencies:
   - pip:
     - ipyparallel==6.2.5
     - javabridge==1.0.18
-    - m2stitch==0.0.1a0
+    - m2stitch==0.2.2
     - natsort==7.1.1
     - numba==0.48.0
     - numpy==1.20.3

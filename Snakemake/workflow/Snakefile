@@ -2,7 +2,7 @@ from glob import glob
 from os import path
 import shutil
 
-czi_files = glob(path.join("**","*.czi"),recursive=True)
+czi_files = glob(path.join("**","*stain*.czi"),recursive=True)
 czi_files = [f[:-4] for f in czi_files if path.isfile(f)]
 output_directory = config["output_directory"]
 

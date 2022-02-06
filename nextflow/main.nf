@@ -1,7 +1,13 @@
-params.input_path = "."
+params.input_path = "/work/fukai/2021-03-04-timelapse/"
 params.output_path = "."
 
-input_czi_files = Channel.fromPath($launchDir + "/" + params.input_path)
+Channel.fromPath("${params.input_path}/**.czi").view({ "${it}" }).set({ input_czi_files })
+
+profiles {
+    conda {
+//        process.conda = "${moduleDir}/envs/image_analysis.yaml"
+    }
+}
 
 process exportMetadata {
     input : 
