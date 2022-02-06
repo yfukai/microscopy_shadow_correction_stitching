@@ -9,10 +9,12 @@ import yaml
 def main(input_czi, output_metadata_yaml):
     aics_image = AICSImage(input_czi,reconstruct_mosaic=False)
     dims=aics_image.dims
+
+    # Export metadata to YAML
     metadata=dict(
         channel_names = list(map(str,aics_image.channel_names)), # channel name strings
         dims = dict(dims.items()), # dimensions of the image
-        mosaic_positions = [list(aics_image.get_mosaic_tile_position(i)) 
+        mosaic_positions = [list(aics_image.get_mosaic_choosepos_position(i)) 
                             for i in range(dims.M)], # Y and X mosaic positions in pixel
         physical_pixel_sizes = [
             aics_image.physical_pixel_sizes.Z,
@@ -22,6 +24,7 @@ def main(input_czi, output_metadata_yaml):
     )
     with open(output_metadata_yaml, "w") as f:
         yaml.dump(metadata, f)
+
 
 if __name__ == '__main__':
     main()

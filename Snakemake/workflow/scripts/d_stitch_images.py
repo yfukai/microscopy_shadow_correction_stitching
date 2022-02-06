@@ -48,7 +48,7 @@ def main(
     stitching_df = pd.DataFrame()
     props_dicts = {}
 
-    planes_df["tile_full"] = True
+    planes_df["choosepos_full"] = True
     for c_name in stitching_channels:
         c_indices = [j for j, c in enumerate(channel_names) if c_name in c]
         assert len(c_indices) == 1
@@ -58,10 +58,10 @@ def main(
         indices_groups = list(selected_planes_df.groupby(["T_index", "Z_index"]))
         if only_first_timepoint:
             indices_groups = [indices_groups[0]]
-        full_tile_size = len(indices_groups[0][1])
+        full_choosepos_size = len(indices_groups[0][1])
         for (t, z), grp in tqdm(indices_groups):
-            if len(grp) < full_tile_size:
-                planes_df.loc[planes_df["T_index"] == t, "tile_full"] = False
+            if len(grp) < full_choosepos_size:
+                planes_df.loc[planes_df["T_index"] == t, "choosepos_full"] = False
                 continue  # only stitch full tiles
             images = []
             rows = []

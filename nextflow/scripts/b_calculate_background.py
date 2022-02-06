@@ -1,27 +1,104 @@
 #!/usr/bin/env python3
+#%%
+from aicsimageio import AICSImage
+import click
+import yaml
+import numpy as np
+from matplotlib import pyplot as plt
+from dask import array as da
+from skimage import filters
+from skimage import transform
+from skimage.morphology import disk
+
+choosepos_target_channel="Phase"
+choosepos_median_filter_scaling=0.1
+choosepos_median_filter_size=10
+choosepos_stdev_quantile=0.25
+choosepos_stdev_factor=5
+choosepos_pixel_ratio_threshold=0.05
+
+#%%
+input_czi = "/work/fukai/2021-03-04-timelapse/210307-HL60-atRAlive-live-01.czi/210307-HL60-atRAlive-live-01_AcquisitionBlock3.czi/210307-HL60-atRAlive-live-01_AcquisitionBlock3_pt3.czi"
+aics_image = AICSImage(input_czi, reconstruct_mosaic=False)
+#%%
+image=aics_image.get_image_dask_data("MTCZYX")
+channel_names=list(map(str,aics_image.channel_names))
+
+choosepos_target_index=channel_names.index(choosepos_target_channel)
+#%%
+
+image=np.median(
+    image[:,:,choosepos_target_index,:,:,:],
+    axis=1)
+
+#%%
+def scaled_median_filter(im2d):
+    assert im2d.ndim == 2
+    shape = im2d.shape
+    im2d = np.array(im2d, dtype=np.float32)
+    im2d = transform.rescale(im2d, 
+        choosepos_median_filter_scaling, 
+        anti_aliasing=False,preserve_range=True)
+    im2d = filters.median(im2d,
+            disk(choosepos_median_filter_size))
+    return transform.resize(im2d,shape,
+                preserve_range=True)
+
+#%%
+
+filtered_image=da.from_array(
+    [[scaled_median_filter(image[m,z]) 
+       for z in range(image.shape[1])]
+       for m in range(image.shape[0])]).compute()
+#%%
+
+median_image=np.median(filtered_image,axis=0)
+#%%
+stds=np.std(filtered_image,axis=(1,2,3))
+threshold = np.quantile(
+    stds,choosepos_stdev_quantile)*\
+    choosepos_stdev_factor
+#%%
+plt.imshow(median_image[0])
+#%%
+diff_median_image=(np.abs(filtered_image-median_image) > threshold)
+diff_median_ratio=diff_median_image.sum(axis=(1,2,3))\
+                    /np.product(diff_median_image.shape[1:]).astype(float)
+
+#%%
+plt.hist(diff_median_ratio,bins=100)
+#%%
+indices = np.argsort(diff_median_ratio)
+for i in range(diff_median_image.shape[0]):
+    j=indices[i]
+    plt.subplot(121)
+    plt.imshow(image[j,0])
+    plt.subplot(122)
+    plt.imshow(diff_median_image[j,0])
+    plt.suptitle(diff_median_ratio[j])
+    plt.show()
+#%%
+
+used_mosaic_index=diff_median_ratio<choosepos_pixel_ratio_threshold
+
+
+
 """
 calculate_background.py
 determine the dish center position to use backgrounds, 
 and calculate the background by median
 
 """
-import importlib
 import itertools
 import os
-import sys
 import warnings
-from datetime import datetime, timedelta
 from os import path
 from time import sleep
 
-import bioformats
-import fire
+import click
 import h5py
-import ipyparallel as ipp
-import javabridge
 import numpy as np
 import pandas as pd
-import xmltodict
 import yaml
 from IPython.display import display
 from javabridge import jutil
@@ -437,3 +514,5 @@ if __name__ == "__main__":
         if not "snakemake" in str(e):
             raise e
         fire.Fire(calculate_background)
+
+# %%

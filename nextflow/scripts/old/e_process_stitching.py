@@ -128,7 +128,7 @@ def process_stitching(
                 assert np.array_equal(input_zarr_shape, input_zarr.shape)
         sizeT, sizeC, sizeZ, sizeY, sizeX = input_zarr_shape
         if export_only_full_tile:
-            T_indices = planes_df[planes_df["tile_full"]]["T_index"].unique()
+            T_indices = planes_df[planes_df["choosepos_full"]]["T_index"].unique()
             sizeT = len(T_indices)
             assert np.array_equal(np.arange(sizeT), np.sort(T_indices))
 
@@ -170,7 +170,7 @@ def process_stitching(
             output_zarr[t, :, :, :, :] = stitched_image
 
         if export_only_full_tile:
-            df = stitching_df2[stitching_df2["tile_full"]]
+            df = stitching_df2[stitching_df2["choosepos_full"]]
         else:
             df = stitching_df2
 
