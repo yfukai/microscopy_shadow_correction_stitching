@@ -34,12 +34,16 @@ def scaled_median_filter(im2d,scale,size):
 @click.argument("output_zarr", type=click.Path())
 @click.argument("background_npy", type=click.Path())
 @click.option("--camera_background_tiff", "-c", type=click.Path(exists=True),default=None)
+@click.option("--mode", "-m", 
+             type=click.Choice(['divide', 'subtract'], case_sensitive=False), 
+             default="subtract")
 def main(
     input_czi,
     metadata_yaml,
     output_zarr,
     background_npy,
     camera_background_tiff,
+    mode,
     choosepos_target_channel="Phase",
     choosepos_median_filter_scaling=0.1,
     choosepos_median_filter_size=10,
@@ -147,7 +151,12 @@ def main(
     ############## rescale by background ##############
 
     print(" rescaling background ")
-    rescaled_image=(image-darkfield)/flatfield
+    if mode == "divide":
+        rescaled_image=(image-darkfield)/flatfield
+    elif mode == "subtract":
+        rescaled_image = image-darkfield-flatfield
+    else:
+        assert False, "unknown mode"
     rescaled_image.to_zarr(output_zarr,overwrite=True)
     print(" rescaling background finished ")
 
