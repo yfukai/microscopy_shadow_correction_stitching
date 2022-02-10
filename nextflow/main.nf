@@ -37,8 +37,10 @@ process exportMetadata {
 }
 
 process rescaleBackground {
+    cache true
     publishDir "${params.output_path}/${output_dir}", pattern: "metadata.yaml", mode: "copy"
     publishDir "${params.output_path}/${output_dir}", pattern: "background.npy", mode: "copy"
+    publishDir "${params.output_path}/${output_dir}", pattern: "rescaled.zarr"
 
     input : 
     tuple file(czi_file), file("metadata.yaml"), val(output_dir) from cziMetadata
@@ -55,20 +57,20 @@ process rescaleBackground {
     """
 }
 
-process stitch {
-    publishDir "${params.output_path}/${output_dir}", pattern: "metadata.yaml", mode: "copy"
-    publishDir "${params.output_path}/${output_dir}", pattern: "stitched.zarr", mode: "copy"
-
-    input :
-    tuple file("rescaled.zarr"), file("metadata.yaml"), val(output_dir) from rescaledMetadata
-
-    output :
-    tuple file("stitched.zarr"), file("metadata.yaml"), val(output_dir) to stitchedMetadata
-
-    """
-    ${moduleDir}/scripts/c_stitch.py \
-        rescaled.zarr \
-        metadata.yaml \
-        stitched.zarr
-    """
-}
+//process stitch {
+//    publishDir "${params.output_path}/${output_dir}", pattern: "metadata.yaml", mode: "copy"
+//    publishDir "${params.output_path}/${output_dir}", pattern: "stitched.zarr", mode: "copy"
+//
+//    input :
+//    tuple file("rescaled.zarr"), file("metadata.yaml"), val(output_dir) from rescaledMetadata
+//
+//    output :
+//    tuple file("stitched.zarr"), file("metadata.yaml"), val(output_dir) to stitchedMetadata
+//
+//    """
+//    ${moduleDir}/scripts/c_stitch.py \
+//        rescaled.zarr \
+//        metadata.yaml \
+//        stitched.zarr
+//    """
+//}

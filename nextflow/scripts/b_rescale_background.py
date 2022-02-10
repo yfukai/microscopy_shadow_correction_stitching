@@ -6,9 +6,10 @@ import yaml
 import numpy as np
 from matplotlib import pyplot as plt
 from dask import array as da
-from skimage import filters, transform, io
+from skimage import filters, transform, io, restoration
 from skimage.morphology import disk
 
+io.use_plugin("tifffile")
 
 """
 calculate_background.py
@@ -16,15 +17,15 @@ determine the dish center position to use backgrounds,
 and calculate the background by median
 
 """
-def scaled_median_filter(im2d,scale,size):
+def scaled_filter(im2d,scale,fn,anti_aliasing):
     assert im2d.ndim == 2
     shape = im2d.shape
     im2d = np.array(im2d, dtype=np.float32)
     im2d = transform.rescale(im2d, 
         scale,
-        anti_aliasing=False,preserve_range=True)
-    im2d = filters.median(im2d,
-            disk(size))
+        anti_aliasing=anti_aliasing,
+        preserve_range=True)
+    im2d = fn(im2d)
     return transform.resize(im2d,shape,
                 preserve_range=True)
 
@@ -50,7 +51,8 @@ def main(
     choosepos_stdev_quantile=0.25,
     choosepos_stdev_factor=5,
     choosepos_pixel_ratio_threshold=0.05,
-    background_gaussian_filter_sigma=10,
+    background_rolling_ball_radius=25,
+    background_gaussian_filter_sigma=100,
 ):
     print(" loading data ")
     aics_image = AICSImage(input_czi, reconstruct_mosaic=False)
@@ -73,9 +75,10 @@ def main(
    
     print(" applying filter ")
     filtered_image=da.from_array(
-        [[scaled_median_filter(time_median_image[m,z],
+        [[scaled_filter(time_median_image[m,z],
             choosepos_median_filter_scaling,
-            choosepos_median_filter_size)
+            lambda im : filters.median(im,disk(choosepos_median_filter_size)),
+            anti_aliasing=False)
            for z in range(time_median_image.shape[1])]
            for m in range(time_median_image.shape[0])]).compute()
     median_image=np.median(filtered_image,axis=0)
@@ -103,7 +106,7 @@ def main(
     used_mosaic_index=diff_median_ratio<choosepos_pixel_ratio_threshold
     metadata["used_mosaic_index"]=list(map(int,np.where(used_mosaic_index)[0]))
     print(metadata)
-    with open(metadata_yaml+"_2.yaml", "w") as f:
+    with open(metadata_yaml, "w") as f:
         yaml.safe_dump(metadata,f)
 
 
@@ -111,15 +114,18 @@ def main(
 
     print(" calculating background ")
     mosaic_median_image=np.median(
-        image[used_mosaic_index,:,:,:,:,:]-camera_background,axis=0)
-    flatfield=np.median(mosaic_median_image,axis=0)
-    flatfield=da.from_array([[
-        filters.gaussian( flatfield[c,z,:,:],
-                          sigma=background_gaussian_filter_sigma )
+        image[used_mosaic_index,:,:,:,:,:]-camera_background,
+        axis=0)
+    flatfield=np.median(mosaic_median_image,axis=0).compute()
+    flatfield=np.array([[
+            filters.gaussian(
+                restoration.rolling_ball(
+                    flatfield[c,z,:,:],
+                radius=background_rolling_ball_radius),
+            background_gaussian_filter_sigma,
+            preserve_range=True)
         for z in range(flatfield.shape[1])]
-        for c in range(flatfield.shape[0])]
-    ).compute()
-
+        for c in range(flatfield.shape[0])])
     darkfield=np.tile(
         camera_background,
         list(flatfield.shape[:-2])+[1,1])
@@ -166,4 +172,13 @@ if __name__ == "__main__":
 # %%
 import numpy as np
 import zarr
+from matplotlib import pyplot as plt
+background = np.load("/work/fukai/2021-03-04-timelapse_analyzed/210311-HL60-ctrl-staining_analyzed/background.npy")
+rescaled = zarr.open("/work/fukai/2021-03-04-timelapse_analyzed/210311-HL60-ctrl-staining_analyzed/rescaled.zarr")
+plt.imshow(rescaled[50,0,1,0])
+plt.show()
+for i in range(background.shape[1]):
+    plt.imshow(background[0,i,0,])
+    plt.colorbar()
+    plt.show()
 # %%
