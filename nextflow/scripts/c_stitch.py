@@ -34,7 +34,7 @@ def main(
     stitching_result_csv,
     only_first_timepoint=False,
     stitching_channels=("Phase",),
-    export_only_full_tile=True,
+#    export_only_full_tile=True,
 ):
     print(" loading data ")
     rescaled = zarr.open(rescaled_zarr, mode="r")
@@ -92,7 +92,7 @@ def main(
     )
     with open(metadata_yaml, "w") as f:
         yaml.safe_dump(metadata,f)
-#%%
+
     ### saving stitched images
     print(" saving data ")
     sizeY,sizeX=rescaled.shape[-2:]
@@ -120,8 +120,6 @@ def main(
             stitched_image[:, :, window[0], window[1]] = image
         output_zarr[t, :, :, :, :] = stitched_image
 
-#%%
 
 if __name__ == "__main__":
     main()
-# %%

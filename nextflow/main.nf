@@ -19,7 +19,10 @@ Channel.fromPath("${params.input_path}/**.czi")\
 //}
 
 process exportMetadata {
-    cache true
+    errorStrategy 'retry'
+    maxRetries 3
+
+    cache "deep"
     publishDir "${params.output_path}/${output_dir}", pattern: "metadata.yaml", mode: "copy"
 
     input : 
@@ -37,6 +40,10 @@ process exportMetadata {
 }
 
 process rescaleBackground {
+    errorStrategy 'retry'
+    maxRetries 5
+    maxForks 5
+
     cache true
     publishDir "${params.output_path}/${output_dir}", pattern: "metadata.yaml", mode: "copy"
     publishDir "${params.output_path}/${output_dir}", pattern: "background.npy", mode: "copy"
@@ -57,20 +64,29 @@ process rescaleBackground {
     """
 }
 
-//process stitch {
-//    publishDir "${params.output_path}/${output_dir}", pattern: "metadata.yaml", mode: "copy"
-//    publishDir "${params.output_path}/${output_dir}", pattern: "stitched.zarr", mode: "copy"
-//
-//    input :
-//    tuple file("rescaled.zarr"), file("metadata.yaml"), val(output_dir) from rescaledMetadata
-//
-//    output :
-//    tuple file("stitched.zarr"), file("metadata.yaml"), val(output_dir) to stitchedMetadata
-//
-//    """
-//    ${moduleDir}/scripts/c_stitch.py \
-//        rescaled.zarr \
-//        metadata.yaml \
-//        stitched.zarr
-//    """
-//}
+
+process stitch {
+    errorStrategy 'retry'
+    maxRetries 5
+    maxForks 5
+
+    publishDir "${params.output_path}/${output_dir}", pattern: "metadata.yaml", mode: "copy"
+    publishDir "${params.output_path}/${output_dir}", pattern: "stitched.zarr", mode: "link"
+    publishDir "${params.output_path}/${output_dir}", pattern: "stitching_result.csv", mode: "copy"
+
+    input :
+    tuple file("rescaled.zarr"), file("metadata.yaml"), val(output_dir) from rescaledMetadata
+
+    output :
+    tuple file("stitched.zarr"), file("metadata.yaml"), val(output_dir) into stitchedMetadata
+
+    """
+    ${moduleDir}/scripts/c_stitch.py \
+        rescaled.zarr \
+        metadata.yaml \
+        stitched.zarr \
+        stitching_result.csv
+    """
+}
+
+stitchedMetadata.subscribe({ println "${it}" })

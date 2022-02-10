@@ -53,6 +53,9 @@ def main(
     choosepos_pixel_ratio_threshold=0.05,
     background_rolling_ball_radius=25,
     background_gaussian_filter_sigma=100,
+    background_each_rescale_channels=("Phase",),
+    background_each_scaling=0.05,
+    background_each_median_disk_size=5,
 ):
     print(" loading data ")
     aics_image = AICSImage(input_czi, reconstruct_mosaic=False)
@@ -163,6 +166,21 @@ def main(
         rescaled_image = image-darkfield-flatfield
     else:
         assert False, "unknown mode"
+
+    each_rescale_indices=[channel_names.index(c) 
+                for c in background_each_rescale_channels]
+    rescaled_image[:,:,each_rescale_indices,:,:,:]=\
+        rescaled_image[:,:,each_rescale_indices,:,:,:]\
+            .rechunk([1,1,1,1,*rescaled_image.shape[-2:]])\
+            .map_blocks(
+                lambda img : img-scaled_filter(img[0,0,0,0], 
+                    background_each_scaling,
+                    lambda im : filters.median(
+                       im,disk(background_each_median_disk_size)
+                    ),
+                anti_aliasing=False)
+            )
+
     rescaled_image.to_zarr(output_zarr,overwrite=True)
     print(" rescaling background finished ")
 
