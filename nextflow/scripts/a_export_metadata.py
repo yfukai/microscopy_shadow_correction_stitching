@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from aicsimageio import AICSImage
+from os import path
 import click
 import yaml
 
@@ -12,6 +13,7 @@ def main(input_czi, output_metadata_yaml):
 
     # Export metadata to YAML
     metadata=dict(
+        filename=path.abspath(input_czi),
         channel_names = list(map(str,aics_image.channel_names)), # channel name strings
         dims = dict(dims.items()), # dimensions of the image
         mosaic_positions = [list(aics_image.get_mosaic_tile_position(i)) 

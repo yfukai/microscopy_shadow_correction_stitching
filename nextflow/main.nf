@@ -47,7 +47,7 @@ process rescaleBackground {
     cache true
     publishDir "${params.output_path}/${output_dir}", pattern: "metadata.yaml", mode: "copy"
     publishDir "${params.output_path}/${output_dir}", pattern: "background.npy", mode: "copy"
-    publishDir "${params.output_path}/${output_dir}", pattern: "rescaled.zarr"
+//    publishDir "${params.output_path}/${output_dir}", pattern: "rescaled.zarr"
 
     input : 
     tuple file(czi_file), file("metadata.yaml"), val(output_dir) from cziMetadata
@@ -66,9 +66,8 @@ process rescaleBackground {
 
 
 process stitch {
-    errorStrategy 'retry'
-    maxRetries 5
-    maxForks 5
+    errorStrategy 'ignore'
+    maxForks 20
 
     publishDir "${params.output_path}/${output_dir}", pattern: "metadata.yaml", mode: "copy"
     publishDir "${params.output_path}/${output_dir}", pattern: "stitched.zarr", mode: "link"
@@ -89,4 +88,21 @@ process stitch {
     """
 }
 
-stitchedMetadata.subscribe({ println "${it}" })
+process report {
+    publishDir "${params.output_path}/${output_dir}", pattern: "report", mode: "copy"
+
+    input :
+    tuple file("stitched.zarr"), file("metadata.yaml"), val(output_dir) from stitchedMetadata
+
+    output : 
+        val(output_dir) into reported
+
+    """
+    ${moduleDir}/scripts/d_report.py \
+        stitched.zarr \
+        metadata.yaml \
+        report
+    """
+}
+
+reported.subscribe({ println "${it}" })

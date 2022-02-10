@@ -1,3 +1,4 @@
 {
-	"python.pythonPath": "/Users/fukai/.anaconda3/bin/python"
+	"python.pythonPath": "/Users/fukai/.anaconda3/bin/python",
+	"python.formatting.provider": "black"
 }
