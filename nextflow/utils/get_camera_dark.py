@@ -5,10 +5,30 @@ import xmltodict
 from os import path
 import numpy as np
 import javabridge
-import bioformats as bf
-javabridge.start_vm(class_path=bf.JARS)
+import bioformats 
 import pycziutils
+import functools
 import yaml
+javabridge.start_vm(class_path=bioformats.JARS)
+myloglevel = "ERROR"  # user string argument for logLevel.
+rootLoggerName = javabridge.get_static_field(
+    "org/slf4j/Logger", "ROOT_LOGGER_NAME", "Ljava/lang/String;"
+)
+rootLogger = javabridge.static_call(
+    "org/slf4j/LoggerFactory",
+    "getLogger",
+    "(Ljava/lang/String;)Lorg/slf4j/Logger;",
+    rootLoggerName,
+)
+logLevel = javabridge.get_static_field(
+    "ch/qos/logback/classic/Level",
+    myloglevel,
+    "Lch/qos/logback/classic/Level;",
+)
+javabridge.call(
+    rootLogger, "setLevel", "(Lch/qos/logback/classic/Level;)V", logLevel
+)
+
 
 #%%
 match_keys_ops = {
@@ -53,7 +73,6 @@ def get_camera_props(
         prop_dict["camera"] = detector["@ID"]
     return prop_dict, boundary
 #%%
-
 def main(filename,camera_dark_path):
     meta = pycziutils.get_tiled_omexml_metadata(filename)
     channels = pycziutils.parse_channels(meta)
@@ -67,7 +86,7 @@ def main(filename,camera_dark_path):
     params_dict.update(
         {"boundary": [[[b.start, b.stop] for b in p[1]] for p in camera_propss]}
     )
-#    print(params_dict)
+    print(params_dict)
 
     camera_dark_img = []
     for channel, (camera_props, boundary) in zip(channels, camera_propss):
@@ -110,6 +129,7 @@ def main(filename,camera_dark_path):
             {
                 "camera_dark_image_file": path.abspath(dark_image_file),
                 "camera_dark_image_props": props,
+                "meta":meta
             }
         )
     return params_dict
@@ -117,13 +137,35 @@ def main(filename,camera_dark_path):
 #%%
 from glob import glob
 from tqdm import tqdm
-dark_image_files={}
+dark_image_file_props={}
 camera_dark_path="/mnt/showers/AxioObserver7/ImageData/Fukai/camera-dark/analyzed"
 for f in tqdm(glob("/work/fukai/2021-03-04-timelapse/**/*.czi",recursive=True)):
     if path.isfile(f):
         print(f)
         params_dict=main(f,camera_dark_path)
-        dark_image_files[f]=params_dict["camera_dark_image_file"]
+        dark_image_file_props[f]=params_dict
 
-print(np.unique(dark_image_files.values()))
+# %%
+files=np.unique(list(map(lambda x:x["camera_dark_image_file"],
+    dark_image_file_props.values()))).tolist()
+assert len(files)==1
+dark_image_file=files[0]
+print(dark_image_file)
+# %%
+from skimage.io import imread, imsave
+img=imread(dark_image_file)
+
+# %%
+boundaries=np.unique(list(map(lambda x:x["boundary"],
+    dark_image_file_props.values()))).tolist()
+# %%
+b=np.concatenate(np.concatenate(boundaries))
+by=b[1::2]
+bx=b[::2]
+assert np.all(by==by[0])
+assert np.all(bx==bx[0])
+# %%
+img2=img[by[0][0]:by[0][1],bx[0][0]:bx[0][1]]
+print(img2.shape)
+imsave("/work/fukai/2021-03-04-timelapse/camera_dark_image.tiff",img2)
 # %%

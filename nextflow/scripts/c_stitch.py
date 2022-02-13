@@ -65,7 +65,9 @@ def main(
             print(t,z)
             images=np.array(rescaled[:,t,c,z,:,:])
             _grid, stitching_props[(c,t,z)] = stitch_images(images, 
-                                                position_indices=mosaic_indices)
+                                                position_indices=mosaic_indices,
+                                                position_initial_guess=mosaic_positions,
+                                                )
             stitching_df=stitching_df.append(pd.DataFrame(dict(
                 m=np.arange(len(_grid)),
                 t=t,c=c,z=z,

@@ -1,5 +1,6 @@
 params.input_path = "/work/fukai/2021-03-04-timelapse/"
-params.background_tiff_path = ""
+//params.background_tiff_path = "${params.input_path}/mean_camera_Axiocam503m_binning_[1, 1]_bit_depth_12_exposure_50.0_LUT_[0, 1].tiff"
+params.background_tiff_path = "${params.input_path}/camera_dark_image.tiff"
 params.output_path = "/work/fukai/2021-03-04-timelapse_analyzed"
 
 _input_path = new File("${params.input_path}").toURI()
@@ -40,8 +41,8 @@ process exportMetadata {
 }
 
 process rescaleBackground {
-    errorStrategy 'retry'
-    maxRetries 5
+//    errorStrategy 'retry'
+//    maxRetries 5
     maxForks 5
 
     cache true
@@ -60,13 +61,14 @@ process rescaleBackground {
         ${czi_file} \
         metadata.yaml \
         rescaled.zarr \
-        background.npy
+        background.npy \
+        -c "${params.background_tiff_path}"
     """
 }
 
 
 process stitch {
-    errorStrategy 'ignore'
+ //   errorStrategy 'ignore'
     maxForks 20
 
     publishDir "${params.output_path}/${output_dir}", pattern: "metadata.yaml", mode: "copy"
@@ -80,6 +82,7 @@ process stitch {
     tuple file("stitched.zarr"), file("metadata.yaml"), val(output_dir) into stitchedMetadata
 
     """
+    echo ${output_dir}
     ${moduleDir}/scripts/c_stitch.py \
         rescaled.zarr \
         metadata.yaml \
