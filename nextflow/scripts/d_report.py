@@ -37,7 +37,7 @@ def main(stitched_zarr,
                      bbox_inches="tight")
     with open(metadata_yaml, "r") as f:
         metadata=yaml.safe_load(f)
-    mosaic_poss=metadata["stitching_result"]["mosaic_positions"]
+    mosaic_poss=np.array(metadata["stitching_result"]["mosaic_positions"])
     plt.figure(figsize=(10,10))
     plt.plot(mosaic_poss[:,0],mosaic_poss[:,1],"-")
     plt.savefig(path.join(report_path,"mosaic_positions.pdf"))
