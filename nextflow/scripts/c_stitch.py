@@ -67,12 +67,13 @@ def main(
             _grid, stitching_props[(c,t,z)] = stitch_images(images, 
                                                 position_indices=mosaic_indices,
                                                 position_initial_guess=mosaic_positions,
+                                                row_col_transpose=False,
                                                 )
             stitching_df=stitching_df.append(pd.DataFrame(dict(
                 m=np.arange(len(_grid)),
                 t=t,c=c,z=z,
-                pos_y=_grid["x_pos"], # confusing but to sustain the same order as the original code
-                pos_x=_grid["y_pos"],
+                pos_y=_grid["y_pos"], 
+                pos_x=_grid["x_pos"],
             )))
     for j,d in enumerate("yx"):
         stitching_df[f"original_pos_{d}"]=mosaic_positions[stitching_df["m"],j]
