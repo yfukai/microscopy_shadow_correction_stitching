@@ -72,7 +72,7 @@ process stitch {
     maxForks 20
 
     publishDir "${params.output_path}/${output_dir}", pattern: "metadata.yaml", mode: "copy"
-    publishDir "${params.output_path}/${output_dir}", pattern: "stitched.zarr", mode: "link"
+    publishDir "${params.output_path}/${output_dir}", pattern: "stitched.zarr", mode: "move"
     publishDir "${params.output_path}/${output_dir}", pattern: "stitching_result.csv", mode: "copy"
 
     input :
