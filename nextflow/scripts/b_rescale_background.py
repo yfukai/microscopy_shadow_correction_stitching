@@ -51,8 +51,9 @@ def main(
     choosepos_stdev_quantile=0.25,
     choosepos_stdev_factor=5,
     choosepos_pixel_ratio_threshold=0.05,
+    background_median_filter_size=10,
     background_rolling_ball_radius=25,
-    background_gaussian_filter_sigma=100,
+    background_gaussian_filter_sigma=25,
     background_each_rescale_channels=("Phase",),
     background_each_scaling=0.05,
     background_each_median_disk_size=5,
@@ -123,7 +124,9 @@ def main(
     flatfield=np.array([[
             filters.gaussian(
                 restoration.rolling_ball(
-                    flatfield[c,z,:,:],
+                    filters.median(
+                        flatfield[c,z,:,:],
+                        disk(background_median_filter_size)),
                 radius=background_rolling_ball_radius),
             background_gaussian_filter_sigma,
             preserve_range=True)

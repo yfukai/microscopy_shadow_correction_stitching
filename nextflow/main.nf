@@ -55,6 +55,7 @@ process rescaleBackground {
 
     output :
     tuple file("rescaled.zarr"), file("metadata.yaml"), val(output_dir) into rescaledMetadata
+    file "background.npy" 
 
     """
     ${moduleDir}/scripts/b_rescale_background.py \
@@ -72,7 +73,7 @@ process stitch {
     maxForks 20
 
     publishDir "${params.output_path}/${output_dir}", pattern: "metadata.yaml", mode: "copy"
-    publishDir "${params.output_path}/${output_dir}", pattern: "stitched.zarr", mode: "move"
+    publishDir "${params.output_path}/${output_dir}", pattern: "stitched.zarr", mode: "copy"
     publishDir "${params.output_path}/${output_dir}", pattern: "stitching_result.csv", mode: "copy"
 
     input :
@@ -80,6 +81,7 @@ process stitch {
 
     output :
     tuple file("stitched.zarr"), file("metadata.yaml"), val(output_dir) into stitchedMetadata
+    file "stitching_result.csv" 
 
     """
     echo ${output_dir}
@@ -98,7 +100,8 @@ process report {
     tuple file("stitched.zarr"), file("metadata.yaml"), val(output_dir) from stitchedMetadata
 
     output : 
-        val(output_dir) into reported
+    val(output_dir) into reported
+    file "report" 
 
     """
     ${moduleDir}/scripts/d_report.py \
