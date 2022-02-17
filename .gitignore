@@ -2,3 +2,5 @@ hs_err*
 .nextflow/
 .nextflow.log*
 .ipynb_checkpoints/
+work/
+.python-version
