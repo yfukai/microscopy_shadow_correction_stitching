@@ -53,7 +53,7 @@ def main(
 
     # calculate stitching positions
     stitching_props=dict()
-    stitching_df=pd.DataFrame()
+    stitching_dfs=[]
     for stitching_channel in stitching_channels:
         c=channel_names.index(stitching_channel)
         if only_first_timepoint:
@@ -69,24 +69,25 @@ def main(
                                                 position_initial_guess=mosaic_positions,
                                                 row_col_transpose=False,
                                                 )
-            stitching_df=stitching_df.append(pd.DataFrame(dict(
+            stitching_dfs.append(pd.DataFrame(dict(
                 m=np.arange(len(_grid)),
                 t=t,c=c,z=z,
                 pos_y=_grid["y_pos"], 
                 pos_x=_grid["x_pos"],
             )))
+    stitching_df=pd.concat(stitching_dfs)
     for j,d in enumerate("yx"):
         stitching_df[f"original_pos_{d}"]=mosaic_positions[stitching_df["m"],j]
     stitching_df.to_csv(stitching_result_csv)
 
     stitching_df_summarized = (
         stitching_df[["m", "pos_y", "pos_x"]]
-        .groupby(["m"]).agg([np.median,np.std])
+        .groupby(["m"]).agg([np.nanmedian,np.nanstd])
         .fillna(0)
     )
     for d in "yx":
-        vals=stitching_df_summarized[(f"pos_{d}","median")]
-        stitching_df_summarized[f"pos_{d}2"]=(vals-np.min(vals)).astype(pd.Int64Dtype())
+        vals=stitching_df_summarized[(f"pos_{d}","nanmedian")]
+        stitching_df_summarized[f"pos_{d}2"]=np.round(vals-np.min(vals)).astype(pd.Int64Dtype())
     stitching_mosaic_positions=stitching_df_summarized\
             .loc[np.arange(rescaled.shape[0]),["pos_y2","pos_x2"]]\
             .values.tolist()

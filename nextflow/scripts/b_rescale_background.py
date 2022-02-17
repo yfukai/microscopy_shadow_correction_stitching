@@ -53,7 +53,7 @@ def main(
     choosepos_pixel_ratio_threshold=0.05,
     background_median_filter_size=2,
     background_rolling_ball_radius=25,
-    background_gaussian_filter_sigma=100,
+    background_gaussian_filter_sigma=25,
     background_each_rescale_channels=("Phase",),
     background_each_scaling=0.05,
     background_each_median_disk_size=5,
@@ -117,7 +117,7 @@ def main(
     ############## calclulate backgrounds ##############
 
     print(" calculating background ")
-    mosaic_median_image=np.median(
+    mosaic_median_image=np.mean(
         image[used_mosaic_index,:,:,:,:,:]-camera_background,
         axis=0)
     flatfield=np.median(mosaic_median_image,axis=0).compute()

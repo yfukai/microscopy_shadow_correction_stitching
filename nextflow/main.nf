@@ -5,6 +5,7 @@ params.output_path = "/work/fukai/2021-03-04-timelapse_analyzed"
 
 _input_path = new File("${params.input_path}").toURI()
 Channel.fromPath("${params.input_path}/**.czi")\
+//       .filter( ~/.*210304-HL60-atRAlive-beforelive-01.*/ )
        .map({ 
             relpath=_input_path
               .relativize(it.toFile().toURI())
